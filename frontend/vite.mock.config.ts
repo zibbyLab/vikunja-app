@@ -1,0 +1,202 @@
+/**
+ * vite.mock.config.ts – dev-only Vite config that extends the main config
+ * and intercepts /api/v1/* with a mock API so the app runs without a backend.
+ *
+ * Usage:
+ *   pnpm vite --config vite.mock.config.ts --host
+ */
+
+import {defineConfig, mergeConfig, loadEnv} from 'vite'
+import type {Plugin, UserConfig, ConfigEnv} from 'vite'
+import type {IncomingMessage, ServerResponse} from 'node:http'
+
+// ---------------------------------------------------------------------------
+// Seed data
+// ---------------------------------------------------------------------------
+
+const MOCK_USER = {
+	id: 1,
+	username: 'demo',
+	name: 'Demo User',
+	email: 'demo@vikunja.io',
+	is_local_user: true,
+	is_admin: false,
+	created: '2024-01-01T00:00:00Z',
+	updated: '2024-01-01T00:00:00Z',
+	settings: {
+		language: 'en',
+		week_start: 0,
+		overdue_tasks_reminders_time: '9:00',
+		default_project_id: 0,
+		frontend_settings: {},
+	},
+}
+
+// Labels with intentionally mixed case so A→Z sort is observable
+const MOCK_LABELS = [
+	{id: 1, title: 'apple',      hex_color: 'ff6384', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+	{id: 2, title: 'Banana',     hex_color: 'ffce56', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+	{id: 3, title: 'cherry',     hex_color: 'c0392b', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+	{id: 4, title: 'Date',       hex_color: '36a2eb', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+	{id: 5, title: 'elderberry', hex_color: '4bc0c0', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+	{id: 6, title: 'Fig',        hex_color: '9966ff', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+	{id: 7, title: 'grape',      hex_color: '7c4dff', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
+]
+
+const MOCK_CONFIG = {
+	version: 'mock',
+	frontend_url: 'http://localhost:4173',
+	motd: '',
+	link_sharing_enabled: true,
+	max_file_size: '20MB',
+	max_items_per_page: 50,
+	available_migrators: [],
+	task_attachments_enabled: true,
+	totp_enabled: false,
+	enabled_background_providers: [],
+	legal: {imprint_url: '', privacy_policy_url: ''},
+	caldav_enabled: false,
+	user_deletion_enabled: false,
+	task_comments_enabled: true,
+	demo_mode_enabled: false,
+	webhooks_enabled: false,
+	auth: {
+		local: {enabled: true, registration_enabled: true},
+		ldap: {enabled: false},
+		open_id_connect: {enabled: false, redirect_url: '', providers: []},
+	},
+	public_teams_enabled: false,
+	allow_icon_changes: true,
+	enabled_pro_features: [],
+	concurrent_writes: false,
+}
+
+// ---------------------------------------------------------------------------
+// JWT helpers (Node-side, for injecting auth into the page)
+// ---------------------------------------------------------------------------
+
+function makeMockJwt(): string {
+	const header = Buffer.from(JSON.stringify({alg: 'HS256', typ: 'JWT'})).toString('base64url')
+	const payload = Buffer.from(JSON.stringify({
+		id: 1,
+		username: 'demo',
+		name: 'Demo User',
+		email: 'demo@vikunja.io',
+		type: 1, // AUTH_TYPES.USER
+		exp: Math.floor(Date.now() / 1000) + 86400 * 365 * 10, // valid for 10 years
+		sid: 'mock-session',
+	})).toString('base64url')
+	return `${header}.${payload}.mock_sig`
+}
+
+// ---------------------------------------------------------------------------
+// Mock API middleware plugin
+// ---------------------------------------------------------------------------
+
+function mockApiPlugin(token: string): Plugin {
+	// Minimal 1×1 transparent PNG for avatar responses
+	const TINY_PNG = Buffer.from(
+		'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+		'base64',
+	)
+
+	return {
+		name: 'vikunja-mock-api',
+
+		// Inject the auth token before main.ts executes so the app boots as an
+		// authenticated user without needing a real backend.
+		transformIndexHtml(html: string): string {
+			return html.replace(
+				'<script type="module" src="/src/main.ts"></script>',
+				`<script>
+  localStorage.setItem('token', '${token}');
+  localStorage.setItem('API_URL', '/api/v1');
+</script>
+<script type="module" src="/src/main.ts"></script>`,
+			)
+		},
+
+		configureServer(server) {
+			server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+				const rawUrl = req.url || ''
+				if (!rawUrl.startsWith('/api/v1')) {
+					return next()
+				}
+
+				const path = rawUrl.split('?')[0]
+
+				function json(data: unknown, status = 200, extra: Record<string, string> = {}) {
+					const body = JSON.stringify(data)
+					res.writeHead(status, {
+						'Content-Type': 'application/json',
+						'Content-Length': String(Buffer.byteLength(body)),
+						'Access-Control-Allow-Origin': '*',
+						...extra,
+					})
+					res.end(body)
+				}
+
+				function paginatedJson(data: unknown[]) {
+					return json(data, 200, {
+						'x-pagination-result-count': String(data.length),
+						'x-pagination-total-pages': '1',
+					})
+				}
+
+				// OPTIONS pre-flight
+				if (req.method === 'OPTIONS') {
+					res.writeHead(204, {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*'})
+					return res.end()
+				}
+
+				if (req.method === 'GET') {
+					if (path === '/api/v1/info') return json(MOCK_CONFIG)
+					if (path === '/api/v1/user') return json(MOCK_USER)
+					if (path === '/api/v1/labels') return paginatedJson(MOCK_LABELS)
+					if (path === '/api/v1/projects') return paginatedJson([])
+					if (path === '/api/v1/namespaces') return paginatedJson([])
+					if (path === '/api/v1/teams') return paginatedJson([])
+					if (/^\/api\/v1\/avatar\//.test(path)) {
+						res.writeHead(200, {'Content-Type': 'image/png', 'Content-Length': String(TINY_PNG.length)})
+						return res.end(TINY_PNG)
+					}
+				}
+
+				// Swallow refresh-token requests silently — the JWT we injected is
+				// long-lived so this path is only hit if the app decides to refresh proactively.
+				if (req.method === 'POST' && path === '/api/v1/user/token/refresh') {
+					return json({token: token})
+				}
+
+				// Catch-all: structured 404 so the frontend error handler gets valid JSON
+				return json({message: 'mock: not implemented', code: 0}, 404)
+			})
+		},
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Config export
+// ---------------------------------------------------------------------------
+
+export default defineConfig(async (env: ConfigEnv) => {
+	// Dynamically import the base config factory (avoids circular-import issues
+	// with the default export of vite.config.ts being a function).
+	const {default: baseConfigFn} = await import('./vite.config.ts')
+
+	const loadedEnv = loadEnv(env.mode, process.cwd(), '')
+	const baseConfig: UserConfig =
+		(typeof baseConfigFn === 'function' ? baseConfigFn(env) : baseConfigFn) ?? {}
+
+	const token = makeMockJwt()
+
+	return mergeConfig(baseConfig, {
+		plugins: [mockApiPlugin(token)],
+		server: {
+			// Must bind to 0.0.0.0 so the preview proxy can reach us from
+			// outside the container.  The base config uses 127.0.0.1.
+			host: '0.0.0.0',
+			port: parseInt(loadedEnv.VIKUNJA_FRONTEND_PORT || '4173', 10),
+		},
+	} as UserConfig)
+})

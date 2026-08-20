@@ -1,0 +1,9 @@
+{
+  "what": "Mock API harness maintained by the Zibby frontend-specialist agent. This branch is NEVER merged: it is restored into the worktree at the start of every run so the mock layer is built once and stays out of feature pull requests.",
+  "appPath": "frontend",
+  "files": [
+    "frontend/vite.mock.config.ts"
+  ],
+  "startCommand": "nohup node_modules/.bin/vite --config vite.mock.config.ts --host --port 4173 > /tmp/devserver.log 2>&1 &",
+  "updatedAt": "2026-08-20T12:31:05.480Z"
+}
