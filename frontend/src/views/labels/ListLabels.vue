@@ -27,6 +27,19 @@
 			</p>
 		</div>
 
+		<p
+			v-if="labelStore.labelsArray.length > 0"
+			v-cy="'label-count'"
+		>
+			{{ $t('label.count', labelStore.labelsArray.length) }}
+		</p>
+		<p
+			v-else
+			v-cy="'label-empty'"
+		>
+			{{ $t('label.empty') }}
+		</p>
+
 		<div class="columns">
 			<div class="labels-list column">
 				<RouterLink
