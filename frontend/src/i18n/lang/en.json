@@ -738,6 +738,11 @@
       "success": "The label was successfully updated."
     },
     "deleteSuccess": "The label was successfully deleted.",
+    "bulk": {
+      "selected": "{count} label selected | {count} labels selected",
+      "deleteSelected": "Delete selected",
+      "confirmDelete": "Delete {count} label? This cannot be undone. | Delete {count} labels? This cannot be undone."
+    },
     "attributes": {
       "title": "Title",
       "titlePlaceholder": "The label title goes here…",

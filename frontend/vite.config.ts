@@ -12,6 +12,7 @@ import UnpluginInjectPreload from 'unplugin-inject-preload/vite'
 import {visualizer} from 'rollup-plugin-visualizer'
 
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin'
+import { mockApiPlugin } from './mockApiPlugin'
 import svgLoader from 'vite-svg-loader'
 import postcssPresetEnv from 'postcss-preset-env'
 import postcssEasingGradients from 'postcss-easing-gradients'
@@ -279,6 +280,11 @@ function getServeConfig(env: Record<string, string>) {
 	// override prod settings with dev settings
 	return {
 		...buildConfig,
+		plugins: [
+			// Mock API must come first so its middleware runs before Vite's own handlers
+			mockApiPlugin(),
+			...(buildConfig.plugins ?? []),
+		],
 		server: {
 			...buildConfig.server,
 			...(env.DEV_PROXY && { proxy: {
