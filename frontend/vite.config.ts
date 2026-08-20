@@ -17,6 +17,7 @@ import postcssPresetEnv from 'postcss-preset-env'
 import postcssEasingGradients from 'postcss-easing-gradients'
 import tailwindcss from '@tailwindcss/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import {mockApiPlugin} from './mockApiPlugin'
 
 const pathSrc = fileURLToPath(new URL('./src', import.meta.url)).replaceAll('\\', '/')
 
@@ -141,6 +142,7 @@ function getBuildConfig(env: Record<string, string>) {
 			},
 		},
 		plugins: [
+			mockApiPlugin(),
 			tailwindcss(),
 			vue(),
 			svgLoader({

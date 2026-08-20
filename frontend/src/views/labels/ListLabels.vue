@@ -29,8 +29,22 @@
 
 		<div class="columns">
 			<div class="labels-list column">
+				<input
+					v-cy="'label-search'"
+					v-model="searchQuery"
+					type="text"
+					:placeholder="$t('label.search.placeholder')"
+					class="input mb-2"
+				>
+				<p
+					v-if="searchQuery && filteredLabels.length === 0"
+					v-cy="'label-search-empty'"
+					class="has-text-centered has-text-grey is-italic"
+				>
+					{{ $t('label.search.empty') }}
+				</p>
 				<RouterLink
-					v-for="label in labelStore.labelsArray"
+					v-for="label in filteredLabels"
 					:key="label.id"
 					:to="{name: 'home', query: {labels: label.id.toString()}}"
 					:style="getLabelStyles(label)"
@@ -143,6 +157,7 @@ const isLabelEdit = ref(false)
 const editorActive = ref(false)
 const showDeleteModal = ref(false)
 const labelToDelete = ref<ILabel | undefined>(undefined)
+const searchQuery = ref('')
 
 useTitle(() => t('label.title'))
 
@@ -153,6 +168,12 @@ const labelStore = useLabelStore()
 labelStore.loadAllLabels()
 
 const loading = computed(() => labelStore.isLoading)
+
+const filteredLabels = computed(() => {
+	const q = searchQuery.value.trim().toLowerCase()
+	if (!q) return labelStore.labelsArray
+	return labelStore.labelsArray.filter(l => l.title.toLowerCase().includes(q))
+})
 const {getLabelStyles} = useLabelStyles()
 
 function deleteLabel(label?: ILabel) {
