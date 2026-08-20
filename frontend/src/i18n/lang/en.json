@@ -737,6 +737,8 @@
       "header": "Edit Label",
       "success": "The label was successfully updated."
     },
+    "count": "1 label | {count} labels",
+    "empty": "You have not created any labels yet.",
     "deleteSuccess": "The label was successfully deleted.",
     "attributes": {
       "title": "Title",
