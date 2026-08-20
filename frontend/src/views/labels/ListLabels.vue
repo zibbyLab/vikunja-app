@@ -29,8 +29,16 @@
 
 		<div class="columns">
 			<div class="labels-list column">
+				<button
+					v-cy="'label-sort-toggle'"
+					class="button is-small mb-2"
+					type="button"
+					@click="sortDesc = !sortDesc"
+				>
+					{{ sortDesc ? $t('label.sortDesc') : $t('label.sortAsc') }}
+				</button>
 				<RouterLink
-					v-for="label in labelStore.labelsArray"
+					v-for="label in sortedLabels"
 					:key="label.id"
 					:to="{name: 'home', query: {labels: label.id.toString()}}"
 					:style="getLabelStyles(label)"
@@ -143,6 +151,7 @@ const isLabelEdit = ref(false)
 const editorActive = ref(false)
 const showDeleteModal = ref(false)
 const labelToDelete = ref<ILabel | undefined>(undefined)
+const sortDesc = ref(false)
 
 useTitle(() => t('label.title'))
 
@@ -153,6 +162,14 @@ const labelStore = useLabelStore()
 labelStore.loadAllLabels()
 
 const loading = computed(() => labelStore.isLoading)
+
+// labelStore.labelsArray is already sorted ascending; reverse a copy for descending.
+const sortedLabels = computed(() => {
+	if (sortDesc.value) {
+		return [...labelStore.labelsArray].reverse()
+	}
+	return labelStore.labelsArray
+})
 const {getLabelStyles} = useLabelStyles()
 
 function deleteLabel(label?: ILabel) {
