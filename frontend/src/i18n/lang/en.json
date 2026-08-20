@@ -727,6 +727,10 @@
     "manage": "Manage labels",
     "description": "Click on a label to edit it. You can edit all labels you created, you can use all labels which are associated with a task to whose project you have access.",
     "newCTA": "You currently do not have any labels.",
+    "search": {
+      "placeholder": "Search labels…",
+      "empty": "No labels match your search."
+    },
     "create": {
       "header": "New label",
       "title": "Create a label",
