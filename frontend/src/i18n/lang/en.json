@@ -738,6 +738,8 @@
       "success": "The label was successfully updated."
     },
     "deleteSuccess": "The label was successfully deleted.",
+    "sortAsc": "Sort: A to Z",
+    "sortDesc": "Sort: Z to A",
     "attributes": {
       "title": "Title",
       "titlePlaceholder": "The label title goes here…",
