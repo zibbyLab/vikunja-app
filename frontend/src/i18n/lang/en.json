@@ -743,6 +743,11 @@
       "titlePlaceholder": "The label title goes here…",
       "description": "Description",
       "color": "Color"
+    },
+    "search": {
+      "placeholder": "Search labels…",
+      "count": "Showing {visible} of {total} labels",
+      "empty": "No labels match your search."
     }
   },
   "sharing": {

@@ -27,28 +27,49 @@
 			</p>
 		</div>
 
+		<!-- Shareable label filter: input + live count -->
+		<input
+			v-cy="'label-search'"
+			v-model="searchQuery"
+			class="input"
+			type="text"
+			:placeholder="$t('label.search.placeholder')"
+			@keydown.escape="clearSearch"
+		/>
+		<p v-cy="'label-search-count'">
+			{{ $t('label.search.count', { visible: filteredLabels.length, total: labelStore.labelsArray.length }) }}
+		</p>
+
 		<div class="columns">
 			<div class="labels-list column">
-				<RouterLink
-					v-for="label in labelStore.labelsArray"
-					:key="label.id"
-					:to="{name: 'home', query: {labels: label.id.toString()}}"
-					:style="getLabelStyles(label)"
-					class="tag"
-				>
-					<span>{{ label.title }}</span>
-					<BaseButton
-						v-if="userInfo.id === label.createdBy.id"
-						class="label-edit-button is-small"
-						:aria-label="$t('label.edit.header')"
-						@click.stop.prevent="editLabel(label)"
+				<template v-if="filteredLabels.length > 0">
+					<RouterLink
+						v-for="label in filteredLabels"
+						:key="label.id"
+						:to="{name: 'home', query: {labels: label.id.toString()}}"
+						:style="getLabelStyles(label)"
+						class="tag"
 					>
-						<Icon
-							icon="pen"
-							class="icon"
-						/>
-					</BaseButton>
-				</RouterLink>
+						<span>{{ label.title }}</span>
+						<BaseButton
+							v-if="userInfo.id === label.createdBy.id"
+							class="label-edit-button is-small"
+							:aria-label="$t('label.edit.header')"
+							@click.stop.prevent="editLabel(label)"
+						>
+							<Icon
+								icon="pen"
+								class="icon"
+							/>
+						</BaseButton>
+					</RouterLink>
+				</template>
+				<p
+					v-else-if="searchQuery !== ''"
+					v-cy="'label-search-empty'"
+				>
+					{{ $t('label.search.empty') }}
+				</p>
 			</div>
 			<div
 				v-if="isLabelEdit"
@@ -120,8 +141,9 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, ref} from 'vue'
+import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRoute, useRouter} from 'vue-router'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import Editor from '@/components/input/AsyncEditor'
@@ -155,6 +177,37 @@ labelStore.loadAllLabels()
 const loading = computed(() => labelStore.isLoading)
 const {getLabelStyles} = useLabelStyles()
 
+// ── Shareable label filter ──────────────────────────────────────────────────
+
+const route = useRoute()
+const router = useRouter()
+
+// Initialise from ?q= query param so a fresh page load (or reload) restores
+// the filter before the user types anything.
+const searchQuery = ref((route.query.q as string) ?? '')
+
+// Case-insensitive substring filter, done entirely in the browser — no new
+// API call and no change to the label store.
+const filteredLabels = computed(() =>
+	labelStore.labelsArray.filter(label =>
+		!searchQuery.value ||
+		label.title.toLowerCase().includes(searchQuery.value.toLowerCase()),
+	),
+)
+
+// Mirror the query into the URL using router.replace (no history spam).
+// When the input is empty the ?q param is dropped so the URL is exactly /labels.
+watch(searchQuery, (q) => {
+	router.replace({ query: q ? { q } : {} })
+})
+
+// Escape key handler: clear the filter and remove ?q from the URL.
+function clearSearch() {
+	searchQuery.value = ''
+}
+
+// ── Label CRUD (unchanged) ──────────────────────────────────────────────────
+
 function deleteLabel(label?: ILabel) {
 	if (!label) {
 		return
@@ -173,11 +226,11 @@ function editLabel(label: ILabel) {
 	if (label.createdBy.id !== userInfo.value.id) {
 		return
 	}
-	// Duplicating the label to make sure it does not look like changes take effect immediatly as the label 
+	// Duplicating the label to make sure it does not look like changes take effect immediatly as the label
 	// object passed to this function here still has a reference to the store.
 	labelEditLabel.value = new LabelModel({
 		...label,
-		// The model does not support passing dates into it directly so we need to convert them first				
+		// The model does not support passing dates into it directly so we need to convert them first
 		created: +label.created,
 		updated: +label.updated,
 	})

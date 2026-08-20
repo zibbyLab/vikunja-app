@@ -17,6 +17,7 @@ import postcssPresetEnv from 'postcss-preset-env'
 import postcssEasingGradients from 'postcss-easing-gradients'
 import tailwindcss from '@tailwindcss/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import {mockApiPlugin} from './mockApiPlugin'
 
 const pathSrc = fileURLToPath(new URL('./src', import.meta.url)).replaceAll('\\', '/')
 
@@ -279,6 +280,12 @@ function getServeConfig(env: Record<string, string>) {
 	// override prod settings with dev settings
 	return {
 		...buildConfig,
+		plugins: [
+			// The mock API plugin must come first so it intercepts /api/v1/* before
+			// the proxy or any other handler sees the request.
+			mockApiPlugin(),
+			...(buildConfig.plugins as import('vite').PluginOption[]),
+		],
 		server: {
 			...buildConfig.server,
 			...(env.DEV_PROXY && { proxy: {
