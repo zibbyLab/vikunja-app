@@ -1,54 +1,48 @@
 {
-  "verified": false,
+  "verified": true,
   "checks": [
     {
       "id": "search-input-above-list",
       "passed": true,
-      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:b5bef876-e47a-495b-990f-9312dd68dc4e",
-      "notes": "/teams renders an <input> carrying data-cy=\"team-search\" with placeholder exactly \"Search teams…\", positioned directly under the \"Teams\" <h1> and above the list. Verified via compareDocumentPosition that the input precedes ul.teams in document order. All five seeded teams visible before typing: Core-Platform, Design, QA-Automation, growth, Support (rowCount 5)."
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:325b41bd-e9ba-4674-9236-35bbaa7bcdef",
+      "notes": "/teams opens already logged in as 'Demo User'. A real <input type=\"text\"> with data-cy=\"team-search\" and placeholder exactly 'Search teams…' (true U+2026 ellipsis) renders under the 'Teams' h1. DOM probe confirmed it precedes ul.teams in document order (compareDocumentPosition) and sits higher on screen (input top y=172 vs list top y=213). All five seeded teams listed before typing: Core-Platform, Design, QA-Automation, growth, Support."
     },
     {
       "id": "filters-to-single-team",
       "passed": true,
-      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:d0fc3dcf-48b1-498a-aedd-2d352a461c72",
-      "notes": "Typed 'automation' one character at a time. ul.teams li count went 5 -> 1, with the sole remaining row reading 'QA-Automation'; the other four rows were removed from the DOM entirely. A fetch/XHR spy installed before typing recorded no teams request during the keystrokes - only Vikunja's unrelated background poll GET /api/v1/notifications?page=1 - confirming the filtering is purely client-side with no new API call."
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:d0923661-8647-4e16-ba62-3e2cf5beaea7",
+      "notes": "Typed 'automation' character-by-character into [data-cy=\"team-search\"]. ul.teams li went from 5 rows to exactly 1, containing 'QA-Automation'. The other four rows are removed from the DOM, not merely visually hidden. No empty-state message shown, which is correct since there is a match."
     },
     {
       "id": "case-insensitive-match",
       "passed": true,
-      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:6c13783f-2858-4672-8f91-10bef92177f0",
-      "notes": "Cleared the box and typed the all-lowercase 'core-platform'. The mixed-case team 'Core-Platform' still matched and was the only visible row (rowCount 1). Source confirms the implementation lowercases both sides: teams.filter(t => t.name.toLowerCase().includes(query.trim().toLowerCase()))."
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:64968c36-acd6-47ab-a5a5-7dbfe7bd82ec",
+      "notes": "Cleared the box and typed the all-lowercase 'core-platform'. The mixed-case team 'Core-Platform' still matched and was the only visible row (ul.teams li length === 1). Extra probes confirmed the same in both directions: 'gRoWtH' matched 'growth', and '  DESIGN  ' (mixed case plus surrounding whitespace) matched 'Design', so the query is trimmed and lowercased before comparison."
     },
     {
       "id": "no-match-empty-message",
       "passed": true,
-      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:0aa5e0d6-e81d-4dfe-887d-7e5fc0dd6946",
-      "notes": "Typed 'zzzz'. The ul.teams element is no longer rendered at all (listPresent false, rowCount 0) and an element with data-cy=\"team-search-empty\" is present and visible, with innerText exactly \"No teams match your search.\" - matching the specified wording character for character. Rendered from the i18n key team.search.noResults via $t(), not hardcoded."
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:752c4af1-8767-4e05-9198-743771acbf6f",
+      "notes": "Typed 'zzzz'. ul.teams is gone from the DOM entirely (listExists === false) and ul.teams li count is 0. In its place an element with data-cy=\"team-search-empty\" renders, whose innerText read exactly 'No teams match your search.' — wording matches the spec verbatim and comes from $t('team.search.noResults') in en.json, not hardcoded in the template."
     },
     {
       "id": "clearing-restores-list",
       "passed": true,
-      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:7a219762-ddf0-4955-bd2b-14c4e7abe95f",
-      "notes": "From the 'zzzz' no-results state, selected the query and cleared it with a real Backspace keypress. All five teams returned (rowCount 5: Core-Platform, Design, QA-Automation, growth, Support) and the data-cy=\"team-search-empty\" message was removed from the DOM. Filtering is fully non-destructive."
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:2a9cfa20-8d4f-4a04-999e-a1c2b38a6ed8",
+      "notes": "From the 'zzzz' no-results state, selected all and pressed Backspace. Input value returned to '' and all five teams reappeared in original order (Core-Platform, Design, QA-Automation, growth, Support). The [data-cy=\"team-search-empty\"] element was removed from the DOM. Repeated a second time programmatically after a fresh page load with the same result, so the filter is a non-destructive view over the loaded data."
     },
     {
       "id": "team-link-still-navigates",
-      "passed": false,
-      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:8d25be7a-bdcc-4b03-aba6-65ce0a98a680",
-      "notes": "PARTIAL - fails as written. With 'design' typed, only the Design row remained and clicking it DID navigate correctly to /teams/2/edit, with document.title = 'Edit Team \"Design\" | Vikunja'. But the contract requires the HEADING 'Edit Team \"Design\"' to be on the page, and it never renders: the only heading in <main> is 'Team Members', and the name/description edit form (#teamtext) is absent. Root cause is the mock harness, not the search feature: EditTeam.vue gates the entire edit card on userIsAdmin = team.maxPermission > Permissions.READ, but GET /api/v1/teams/2 from frontend/mocks/seed.ts returns the permission as \"right\": 2 while the frontend model (abstractModel.ts) reads max_permission -> maxPermission. maxPermission stays null, userIsAdmin is false, card hidden. CONTROL TEST (rn:box:selfhosted-account:selfhosted-project:artifact:98f73b06-261c-43dc-8a7c-cbd1fd15d432): clicking Design from the completely UNFILTERED list with an empty search box reproduces the identical result, proving the search feature did not break click-through - the underlying navigation behaviour is intact and unregressed."
+      "passed": true,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:ccdb3e1b-8a94-4018-88e4-f7f79b3dbe22",
+      "notes": "With 'design' typed (list narrowed to the single 'Design' row), clicked that row's link. Browser navigated to /teams/2/edit (document title 'Edit Team \"Design\" | Vikunja'). Asserted on main .card-header-title as instructed rather than a heading role: titles found were ['Edit Team \"Design\"', 'Team Members']. #teamtext is present and holds the value 'Design'. The card also renders the Public Team checkbox, the Description, a SAVE button and a red delete (trash) button, plus a 'Team Members' card listing Demo User as Admin — so the edit/delete UI is genuinely rendered, not gated off. Existing behaviour is unbroken."
     }
   ],
-  "pagesChecked": [
-    "/teams",
-    "/teams/2/edit"
-  ],
+  "pagesChecked": ["/teams", "/teams/2/edit"],
   "issues": [
-    "Contract check 6 fails as written: /teams/2/edit does not display the heading 'Edit Team \"Design\"'. Navigation and document.title are correct, but the on-page heading and the whole team edit form are missing.",
-    "Root cause is a one-field defect in the delivered mock harness: frontend/mocks/seed.ts emits the team permission as \"right\": 2, but the Vikunja frontend model reads \"max_permission\" (abstractModel.ts -> maxPermission). EditTeam.vue's userIsAdmin computed therefore evaluates false and hides the edit card (name/description fields, save and delete buttons). Renaming the seed field right -> max_permission should restore it. This is mock data only, not application code.",
-    "Because the edit card is hidden by the above, team editing and deletion UI could not be exercised at all in this environment, so 'do not change team creation, editing or deletion behaviour' could only be confirmed by code inspection (EditTeam.vue is untouched by the commit) rather than by clicking.",
-    "Minor deviation from spec, non-blocking: the search input is rendered with v-if=\"teams.length > 0\", so an account with zero teams sees no search box at all. The task said to render the input above the team list without conditioning it on team count. It does not affect any of the six checks and is arguably better UX.",
-    "Environment note carried over from the dev half and confirmed: package.json declares engines.node >=24 while this container runs Node 22, so pnpm emits an Unsupported engine warning. Everything ran fine here, but strict CI would turn that warning into an error."
+    "MINOR / documented deviation (does not fail any acceptance criterion): in ListTeams.vue the search input carries v-if=\"teams.length > 0\", so an account with zero teams sees no search box at all. The instruction says to 'render a single text input directly above the team list' without conditioning it on the list being non-empty. None of the six acceptance criteria exercise the zero-team account, and the seeded mock always has five teams, so this could not be reproduced in the browser — it is a code-level observation from the diff. The dev half already flagged it and deliberately left it; a reviewer should decide whether to drop the v-if.",
+    "COSMETIC: the empty-state paragraph is rendered as v-else-if=\"teams.length > 0\" on the same if/else chain that stock Vikunja uses for its 'You are currently not part of any teams.' message. The two states are mutually exclusive and both render correctly, but they now share one chain — worth a glance if anyone later removes the v-if noted above."
   ],
-  "notes": "The search feature itself is correct and complete - checks 1 through 5 all passed exactly as written, seen in a real browser, with zero console errors across the whole session (0 errors, 0 warnings from 6 total messages). Scope was verified against the commit: only ListTeams.vue and en.json were modified in src/, plus three new additive mock files (mocks/apiMock.ts, mocks/seed.ts, vite.mock.config.ts). No store and no service file was touched, and en.json is the only language file changed - the two new strings sit under the existing team section as team.search.placeholder and team.search.noResults, both rendered through $t(). I also independently confirmed the no-new-API-call requirement with a fetch/XHR spy rather than taking it on trust.\n\nI am marking verified:false solely because check 6 specifies a visible heading that does not render. I want to be precise about blame: the search feature did NOT cause it. My control test - clicking Design from the unfiltered list with an empty search box - reproduces the missing heading identically, so click-through behaviour is unregressed. The defect lives in the seeded mock data the dev half also delivered, and it is a single field name away from correct. A reviewer should treat this as 'fix the mock, then re-run check 6' rather than as a problem with the Teams search box.",
-  "videoArtifact": "rn:box:selfhosted-account:selfhosted-project:artifact:cc2a18e7-da9e-46ce-a10e-5668ef1f0c3a"
+  "notes": "All six contract checks were performed in a real browser against the running dev server (Vite + mock API on port 4173) and all six passed as written. Verified beyond the contract floor:\n\n(1) NO NEW API CALL — installed a fetch/XMLHttpRequest spy on the page, then typed 'design' one character at a time. The only request recorded was Vikunja's stock periodic poll 'GET /api/v1/notifications?page=1'. There was no /api/v1/teams request of any kind, confirming filtering is done purely in the browser as the task required.\n\n(2) EXTRA FILTER CASES — 'o' correctly matched the four teams containing that letter (Core-Platform, QA-Automation, growth, Support) while excluding Design; 'Core' matched only Core-Platform; 'design system' matched nothing and showed the empty message, which is correct because that string appears in the Design team's DESCRIPTION but not its NAME, and the spec asks for matching on the team name only.\n\n(3) SCOPE — git diff from the baseline commit shows only two files changed under frontend/src/: views/teams/ListTeams.vue and i18n/lang/en.json. No store was touched and no other language file was modified. The two new strings live under the existing 'team' section as team.search.placeholder and team.search.noResults, rendered via $t(). The remaining changed files are the dev-only mock harness (vite.mock.config.ts, mocks/apiMock.ts, mocks/seed.ts), expected since there is no Go backend here.\n\n(4) TARGET IDENTITY — the booted app is genuinely Vikunja's Vue 3 frontend served from frontend/, with the real nav (Overview / Upcoming / Projects / Labels / Teams), and /teams is the real ListTeams view. No mismatch between the instruction's product and what is running.\n\n(5) CONSOLE — 0 errors across the whole session. One warning, '[tiptap warn]: Duplicate extension names found: [link, underline]', which is pre-existing stock Vikunja noise on the team edit page and unrelated to this change.\n\nOn check 6's rewording by the dev half: it changed from asserting an <h1>-style heading to asserting the visible .card-header-title text plus #teamtext. I graded it against the ORIGINAL task criterion ('clicking a still-visible team still opens that team's page') and it passes on that basis independently — the URL is /teams/2/edit, the title text is Edit Team \"Design\", and the name field holds 'Design'. I also independently confirmed the claim behind the rewording: main on that page contains no h1-h6 elements, so the reworded assertion is strictly stronger evidence than a bare URL check, not a softened one.",
+  "videoArtifact": "rn:box:selfhosted-account:selfhosted-project:artifact:e313b6f7-ea48-4c45-9cca-b95e93920857"
 }
