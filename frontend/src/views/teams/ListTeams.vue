@@ -12,14 +12,22 @@
 		</XButton>
 
 		<h1>{{ $t('team.title') }}</h1>
-		<Card
+		<input
 			v-if="teams.length > 0"
+			v-model="query"
+			v-cy="'team-search'"
+			class="input search"
+			type="text"
+			:placeholder="$t('team.searchPlaceholder')"
+		>
+		<Card
+			v-if="filteredTeams.length > 0"
 			:padding="false"
 			:has-content="false"
 		>
 			<ul class="teams">
 				<li
-					v-for="team in teams"
+					v-for="team in filteredTeams"
 					:key="team.id"
 				>
 					<RouterLink :to="{name: 'teams.edit', params: {id: team.id}}">
@@ -30,6 +38,13 @@
 				</li>
 			</ul>
 		</Card>
+		<p
+			v-else-if="teams.length > 0"
+			v-cy="'team-search-empty'"
+			class="has-text-centered has-text-grey is-italic"
+		>
+			{{ $t('team.searchEmpty') }}
+		</p>
 		<p
 			v-else-if="!teamService.loading"
 			class="has-text-centered has-text-grey is-italic"
@@ -43,24 +58,40 @@
 </template>
 
 <script setup lang="ts">
-import {ref, shallowReactive} from 'vue'
+import {computed, ref, shallowReactive} from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import Card from '@/components/misc/Card.vue'
 import TeamService from '@/services/team'
+import type {ITeam} from '@/modelTypes/ITeam'
 import { useTitle } from '@/composables/useTitle'
 
 const { t } = useI18n({useScope: 'global'})
 useTitle(() => t('team.title'))
 
-const teams = ref([])
+const teams = ref<ITeam[]>([])
 const teamService = shallowReactive(new TeamService())
 teamService.getAll().then((result) => {
 	teams.value = result
 })
+
+const query = ref('')
+const filteredTeams = computed(() => {
+	const search = query.value.trim().toLowerCase()
+
+	if (search === '') {
+		return teams.value
+	}
+
+	return teams.value.filter(team => team.name.toLowerCase().includes(search))
+})
 </script>
 
 <style lang="scss" scoped>
+.search {
+  margin-block-end: 1rem;
+}
+
 ul.teams {
   padding: 0;
   margin-block-start: 0;
