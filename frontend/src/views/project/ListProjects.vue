@@ -5,12 +5,21 @@
 		:class="{'is-loading': loading}"
 	>
 		<header class="project-header">
-			<FancyCheckbox
-				v-model="showArchived"
-				v-cy="'show-archived-check'"
-			>
-				{{ $t('project.showArchived') }}
-			</FancyCheckbox>
+			<div class="filter-checkboxes">
+				<FancyCheckbox
+					v-model="showArchived"
+					v-cy="'show-archived-check'"
+				>
+					{{ $t('project.showArchived') }}
+				</FancyCheckbox>
+
+				<FancyCheckbox
+					v-model="favoritesFirst"
+					v-cy="'favorites-first-check'"
+				>
+					{{ $t('project.favoritesFirst') }}
+				</FancyCheckbox>
+			</div>
 
 			<div class="action-buttons">
 				<XButton
@@ -53,12 +62,23 @@ const projectStore = useProjectStore()
 
 useTitle(() => t('project.title'))
 const showArchived = useStorage('showArchived', false)
+const favoritesFirst = useStorage('favoritesFirst', false)
 
 const loading = computed(() => projectStore.isLoading)
 const projects = computed(() => {
-	return showArchived.value
+	const filtered = showArchived.value
 		? projectStore.projectsArray
 		: projectStore.projectsArray.filter(({isArchived}) => !isArchived)
+
+	if (!favoritesFirst.value) {
+		return filtered
+	}
+
+	// Two filter passes keep the store's position order within each group
+	return [
+		...filtered.filter(({isFavorite}) => isFavorite),
+		...filtered.filter(({isFavorite}) => !isFavorite),
+	]
 })
 </script>
 
@@ -73,6 +93,12 @@ const projects = computed(() => {
 	@media screen and (max-width: $tablet) {
 		flex-direction: column;
 	}
+}
+
+.filter-checkboxes {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
 }
 
 .action-buttons {
