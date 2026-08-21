@@ -4,6 +4,5 @@
   "files": [
     "frontend/vite.mock.config.ts"
   ],
-  "startCommand": "nohup node_modules/.bin/vite --config vite.mock.config.ts --host --port 4173 > /tmp/devserver.log 2>&1 &",
-  "updatedAt": "2026-08-20T12:45:18.012Z"
+  "startCommand": "nohup node_modules/.bin/vite --config vite.mock.config.ts --host --port 4173 > /tmp/devserver.log 2>&1 &"
 }
