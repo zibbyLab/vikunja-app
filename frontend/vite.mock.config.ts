@@ -43,6 +43,15 @@ const MOCK_LABELS = [
 	{id: 7, title: 'grape',      hex_color: '7c4dff', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
 ]
 
+// Teams with mixed case so case-insensitive search is observable
+const MOCK_TEAMS = [
+	{id: 1, name: 'Core-Platform',  description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
+	{id: 2, name: 'Design',         description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
+	{id: 3, name: 'QA-Automation',  description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
+	{id: 4, name: 'growth',         description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
+	{id: 5, name: 'Support Core',   description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
+]
+
 const MOCK_CONFIG = {
 	version: 'mock',
 	frontend_url: 'http://localhost:4173',
@@ -155,7 +164,15 @@ function mockApiPlugin(token: string): Plugin {
 					if (path === '/api/v1/labels') return paginatedJson(MOCK_LABELS)
 					if (path === '/api/v1/projects') return paginatedJson([])
 					if (path === '/api/v1/namespaces') return paginatedJson([])
-					if (path === '/api/v1/teams') return paginatedJson([])
+					if (path === '/api/v1/notifications') return paginatedJson([])
+					if (path === '/api/v1/teams') return paginatedJson(MOCK_TEAMS)
+					const teamMatch = /^\/api\/v1\/teams\/(\d+)$/.exec(path)
+					if (teamMatch) {
+						const team = MOCK_TEAMS.find(t => t.id === Number(teamMatch[1]))
+						return team
+							? json({...team, members: [{...MOCK_USER, admin: true}]})
+							: json({message: 'team does not exist', code: 6001}, 404)
+					}
 					if (/^\/api\/v1\/avatar\//.test(path)) {
 						res.writeHead(200, {'Content-Type': 'image/png', 'Content-Length': String(TINY_PNG.length)})
 						return res.end(TINY_PNG)
