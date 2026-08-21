@@ -1,0 +1,48 @@
+{
+  "port": 4173,
+  "appPath": "/workspace/vikunja-app/frontend",
+  "startCommand": "pnpm vite --config vite.mock.config.ts --host 0.0.0.0 --port 4173",
+  "appIdentity": "vikunja-frontend (Vue 3 + Vite + TypeScript)",
+  "summary": "Add a client-side search box to the Teams page",
+  "routes": ["/teams", "/teams/2/edit"],
+  "checks": [
+    {
+      "id": "search-input-above-list",
+      "what": "The Teams page shows a text input with placeholder 'Search teams…' directly above the team list, and all five seeded teams (Core-Platform, Design, QA-Automation, growth, Support) are listed before typing anything",
+      "where": "/teams — [data-cy=\"team-search\"]"
+    },
+    {
+      "id": "filters-to-single-team",
+      "what": "Typing 'automation' into the search box leaves exactly one row, 'QA-Automation', and removes the other four team rows from the list",
+      "where": "/teams — [data-cy=\"team-search\"] then ul.teams li"
+    },
+    {
+      "id": "case-insensitive-match",
+      "what": "Typing the all-lowercase 'core-platform' still matches the mixed-case team 'Core-Platform', which remains the only visible row",
+      "where": "/teams — [data-cy=\"team-search\"] then ul.teams li"
+    },
+    {
+      "id": "no-match-empty-message",
+      "what": "Typing 'zzzz' hides the team list entirely (zero team rows) and shows the message 'No teams match your search.'",
+      "where": "/teams — [data-cy=\"team-search-empty\"]"
+    },
+    {
+      "id": "clearing-restores-list",
+      "what": "Clearing the search input brings back all five teams and removes the 'No teams match your search.' message",
+      "where": "/teams — [data-cy=\"team-search\"]"
+    },
+    {
+      "id": "team-link-still-navigates",
+      "what": "With 'design' typed in the search box, clicking the still-visible 'Design' row opens /teams/2/edit with the heading 'Edit Team \"Design\"'",
+      "where": "/teams — ul.teams li a, lands on /teams/2/edit"
+    }
+  ],
+  "mockHarness": {
+    "files": [
+      "frontend/vite.mock.config.ts",
+      "frontend/mocks/apiMock.ts",
+      "frontend/mocks/seed.ts"
+    ],
+    "notes": "Dev-only Vite config + middleware mocking the Vikunja /api/v1 REST API (info, login/token refresh, user, avatar, teams CRUD) and injecting a mock JWT so the app boots already logged in; seeds five teams."
+  }
+}

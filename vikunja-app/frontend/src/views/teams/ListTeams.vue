@@ -12,14 +12,22 @@
 		</XButton>
 
 		<h1>{{ $t('team.title') }}</h1>
-		<Card
+		<input
 			v-if="teams.length > 0"
+			v-model="query"
+			v-cy="'team-search'"
+			class="input mb-4"
+			type="text"
+			:placeholder="$t('team.search.placeholder')"
+		>
+		<Card
+			v-if="filteredTeams.length > 0"
 			:padding="false"
 			:has-content="false"
 		>
 			<ul class="teams">
 				<li
-					v-for="team in teams"
+					v-for="team in filteredTeams"
 					:key="team.id"
 				>
 					<RouterLink :to="{name: 'teams.edit', params: {id: team.id}}">
@@ -30,6 +38,13 @@
 				</li>
 			</ul>
 		</Card>
+		<p
+			v-else-if="teams.length > 0"
+			v-cy="'team-search-empty'"
+			class="has-text-centered has-text-grey is-italic"
+		>
+			{{ $t('team.search.noResults') }}
+		</p>
 		<p
 			v-else-if="!teamService.loading"
 			class="has-text-centered has-text-grey is-italic"
@@ -43,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, shallowReactive} from 'vue'
+import {computed, ref, shallowReactive} from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import Card from '@/components/misc/Card.vue'
@@ -57,6 +72,15 @@ const teams = ref([])
 const teamService = shallowReactive(new TeamService())
 teamService.getAll().then((result) => {
 	teams.value = result
+})
+
+const query = ref('')
+const filteredTeams = computed(() => {
+	const needle = query.value.trim().toLowerCase()
+	if (needle === '') {
+		return teams.value
+	}
+	return teams.value.filter(team => team.name.toLowerCase().includes(needle))
 })
 </script>
 
