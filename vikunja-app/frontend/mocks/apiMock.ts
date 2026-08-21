@@ -1,6 +1,7 @@
 import type {IncomingMessage, ServerResponse} from 'node:http'
 import type {Plugin} from 'vite'
 
+import {PERMISSIONS} from '../src/constants/permissions.ts'
 import {MOCK_INFO, MOCK_TEAMS, MOCK_USER} from './seed.ts'
 
 // Offline dev harness: serves just enough of the Vikunja /api/v1 surface for the
@@ -39,13 +40,22 @@ export function createMockToken(): string {
 
 const teams = MOCK_TEAMS.map(team => ({...team}))
 
-function send(res: ServerResponse, status: number, body: unknown) {
+function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
 	res.statusCode = status
 	res.setHeader('Content-Type', 'application/json')
 	res.setHeader('x-pagination-total-pages', '1')
 	res.setHeader('x-pagination-result-count', Array.isArray(body) ? String(body.length) : '1')
+	for (const [name, value] of Object.entries(headers)) {
+		res.setHeader(name, value)
+	}
 	res.end(JSON.stringify(body))
 }
+
+// The real API reports the requesting user's permission on a single object in
+// this response header, and AbstractService.getM() reads it into
+// model.maxPermission — a body field is ignored and would be overwritten. The
+// mock user owns every seeded team, so it is always admin.
+const ADMIN_PERMISSION_HEADER = {'x-max-permission': String(PERMISSIONS.ADMIN)}
 
 function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
 	return new Promise(resolve => {
@@ -145,9 +155,9 @@ export function vikunjaApiMock(): Plugin {
 					if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
 						const body = await readBody(req)
 						teams[index] = {...teams[index], ...body} as typeof teams[number]
-						return send(res, 200, teams[index])
+						return send(res, 200, teams[index], ADMIN_PERMISSION_HEADER)
 					}
-					return send(res, 200, teams[index])
+					return send(res, 200, teams[index], ADMIN_PERMISSION_HEADER)
 				}
 
 				// Everything else the shell touches on boot (projects, labels,

@@ -33,8 +33,8 @@
     },
     {
       "id": "team-link-still-navigates",
-      "what": "With 'design' typed in the search box, clicking the still-visible 'Design' row opens /teams/2/edit with the heading 'Edit Team \"Design\"'",
-      "where": "/teams — ul.teams li a, lands on /teams/2/edit"
+      "what": "With 'design' typed in the search box, clicking the still-visible 'Design' row opens /teams/2/edit and that page shows the team edit card: the visible card title reads 'Edit Team \"Design\"' and the Team Name field (#teamtext) is present holding the value 'Design'. NOTE for the checker: stock Vikunja renders card titles as <p class=\"card-header-title\">, never <h1>-<h6>, so match the visible TEXT or .card-header-title rather than a semantic heading role — <main> on this page contains no heading elements at all and never did.",
+      "where": "/teams — ul.teams li a, lands on /teams/2/edit; assert main .card-header-title and #teamtext"
     }
   ],
   "mockHarness": {
@@ -43,6 +43,6 @@
       "frontend/mocks/apiMock.ts",
       "frontend/mocks/seed.ts"
     ],
-    "notes": "Dev-only Vite config + middleware mocking the Vikunja /api/v1 REST API (info, login/token refresh, user, avatar, teams CRUD) and injecting a mock JWT so the app boots already logged in; seeds five teams."
+    "notes": "Dev-only Vite config + middleware mocking the Vikunja /api/v1 REST API (info, login/token refresh, user, avatar, teams CRUD) and injecting a mock JWT so the app boots already logged in; seeds five teams and returns the x-max-permission header on single-team GETs so the team edit card renders."
   }
 }

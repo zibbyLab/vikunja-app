@@ -1,0 +1,54 @@
+{
+  "verified": false,
+  "checks": [
+    {
+      "id": "search-input-above-list",
+      "passed": true,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:b5bef876-e47a-495b-990f-9312dd68dc4e",
+      "notes": "/teams renders an <input> carrying data-cy=\"team-search\" with placeholder exactly \"Search teams…\", positioned directly under the \"Teams\" <h1> and above the list. Verified via compareDocumentPosition that the input precedes ul.teams in document order. All five seeded teams visible before typing: Core-Platform, Design, QA-Automation, growth, Support (rowCount 5)."
+    },
+    {
+      "id": "filters-to-single-team",
+      "passed": true,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:d0fc3dcf-48b1-498a-aedd-2d352a461c72",
+      "notes": "Typed 'automation' one character at a time. ul.teams li count went 5 -> 1, with the sole remaining row reading 'QA-Automation'; the other four rows were removed from the DOM entirely. A fetch/XHR spy installed before typing recorded no teams request during the keystrokes - only Vikunja's unrelated background poll GET /api/v1/notifications?page=1 - confirming the filtering is purely client-side with no new API call."
+    },
+    {
+      "id": "case-insensitive-match",
+      "passed": true,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:6c13783f-2858-4672-8f91-10bef92177f0",
+      "notes": "Cleared the box and typed the all-lowercase 'core-platform'. The mixed-case team 'Core-Platform' still matched and was the only visible row (rowCount 1). Source confirms the implementation lowercases both sides: teams.filter(t => t.name.toLowerCase().includes(query.trim().toLowerCase()))."
+    },
+    {
+      "id": "no-match-empty-message",
+      "passed": true,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:0aa5e0d6-e81d-4dfe-887d-7e5fc0dd6946",
+      "notes": "Typed 'zzzz'. The ul.teams element is no longer rendered at all (listPresent false, rowCount 0) and an element with data-cy=\"team-search-empty\" is present and visible, with innerText exactly \"No teams match your search.\" - matching the specified wording character for character. Rendered from the i18n key team.search.noResults via $t(), not hardcoded."
+    },
+    {
+      "id": "clearing-restores-list",
+      "passed": true,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:7a219762-ddf0-4955-bd2b-14c4e7abe95f",
+      "notes": "From the 'zzzz' no-results state, selected the query and cleared it with a real Backspace keypress. All five teams returned (rowCount 5: Core-Platform, Design, QA-Automation, growth, Support) and the data-cy=\"team-search-empty\" message was removed from the DOM. Filtering is fully non-destructive."
+    },
+    {
+      "id": "team-link-still-navigates",
+      "passed": false,
+      "evidence": "rn:box:selfhosted-account:selfhosted-project:artifact:8d25be7a-bdcc-4b03-aba6-65ce0a98a680",
+      "notes": "PARTIAL - fails as written. With 'design' typed, only the Design row remained and clicking it DID navigate correctly to /teams/2/edit, with document.title = 'Edit Team \"Design\" | Vikunja'. But the contract requires the HEADING 'Edit Team \"Design\"' to be on the page, and it never renders: the only heading in <main> is 'Team Members', and the name/description edit form (#teamtext) is absent. Root cause is the mock harness, not the search feature: EditTeam.vue gates the entire edit card on userIsAdmin = team.maxPermission > Permissions.READ, but GET /api/v1/teams/2 from frontend/mocks/seed.ts returns the permission as \"right\": 2 while the frontend model (abstractModel.ts) reads max_permission -> maxPermission. maxPermission stays null, userIsAdmin is false, card hidden. CONTROL TEST (rn:box:selfhosted-account:selfhosted-project:artifact:98f73b06-261c-43dc-8a7c-cbd1fd15d432): clicking Design from the completely UNFILTERED list with an empty search box reproduces the identical result, proving the search feature did not break click-through - the underlying navigation behaviour is intact and unregressed."
+    }
+  ],
+  "pagesChecked": [
+    "/teams",
+    "/teams/2/edit"
+  ],
+  "issues": [
+    "Contract check 6 fails as written: /teams/2/edit does not display the heading 'Edit Team \"Design\"'. Navigation and document.title are correct, but the on-page heading and the whole team edit form are missing.",
+    "Root cause is a one-field defect in the delivered mock harness: frontend/mocks/seed.ts emits the team permission as \"right\": 2, but the Vikunja frontend model reads \"max_permission\" (abstractModel.ts -> maxPermission). EditTeam.vue's userIsAdmin computed therefore evaluates false and hides the edit card (name/description fields, save and delete buttons). Renaming the seed field right -> max_permission should restore it. This is mock data only, not application code.",
+    "Because the edit card is hidden by the above, team editing and deletion UI could not be exercised at all in this environment, so 'do not change team creation, editing or deletion behaviour' could only be confirmed by code inspection (EditTeam.vue is untouched by the commit) rather than by clicking.",
+    "Minor deviation from spec, non-blocking: the search input is rendered with v-if=\"teams.length > 0\", so an account with zero teams sees no search box at all. The task said to render the input above the team list without conditioning it on team count. It does not affect any of the six checks and is arguably better UX.",
+    "Environment note carried over from the dev half and confirmed: package.json declares engines.node >=24 while this container runs Node 22, so pnpm emits an Unsupported engine warning. Everything ran fine here, but strict CI would turn that warning into an error."
+  ],
+  "notes": "The search feature itself is correct and complete - checks 1 through 5 all passed exactly as written, seen in a real browser, with zero console errors across the whole session (0 errors, 0 warnings from 6 total messages). Scope was verified against the commit: only ListTeams.vue and en.json were modified in src/, plus three new additive mock files (mocks/apiMock.ts, mocks/seed.ts, vite.mock.config.ts). No store and no service file was touched, and en.json is the only language file changed - the two new strings sit under the existing team section as team.search.placeholder and team.search.noResults, both rendered through $t(). I also independently confirmed the no-new-API-call requirement with a fetch/XHR spy rather than taking it on trust.\n\nI am marking verified:false solely because check 6 specifies a visible heading that does not render. I want to be precise about blame: the search feature did NOT cause it. My control test - clicking Design from the unfiltered list with an empty search box - reproduces the missing heading identically, so click-through behaviour is unregressed. The defect lives in the seeded mock data the dev half also delivered, and it is a single field name away from correct. A reviewer should treat this as 'fix the mock, then re-run check 6' rather than as a problem with the Teams search box.",
+  "videoArtifact": "rn:box:selfhosted-account:selfhosted-project:artifact:cc2a18e7-da9e-46ce-a10e-5668ef1f0c3a"
+}

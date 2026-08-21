@@ -30,7 +30,9 @@ function team(id: number, name: string, description: string) {
 		description,
 		is_public: false,
 		external_id: '',
-		right: 2,
+		// TeamModel declares `permission`; the admin gate in EditTeam.vue reads
+		// maxPermission, which the API supplies via the x-max-permission header.
+		permission: 2,
 		created_by: MOCK_USER,
 		created: '2024-02-0' + id + 'T09:00:00Z',
 		updated: '2024-03-0' + id + 'T09:00:00Z',
