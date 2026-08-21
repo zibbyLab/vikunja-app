@@ -52,6 +52,33 @@ const MOCK_TEAMS = [
 	{id: 5, name: 'Support Core',   description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
 ]
 
+// Projects in position order, with favorites deliberately interleaved so a
+// "favorites first" reordering is observable.
+const MOCK_PROJECTS = [
+	{id: 1, title: 'Website Relaunch',   is_favorite: false, position: 100},
+	{id: 2, title: 'Mobile App',         is_favorite: true,  position: 200},
+	{id: 3, title: 'Customer Support',   is_favorite: false, position: 300},
+	{id: 4, title: 'Hiring Pipeline',    is_favorite: true,  position: 400},
+	{id: 5, title: 'Marketing Campaign', is_favorite: false, position: 500},
+	{id: 6, title: 'Infrastructure',     is_favorite: false, position: 600},
+	{id: 7, title: 'Old Roadmap 2023',   is_favorite: false, position: 700, is_archived: true},
+	{id: 8, title: 'Design System',      is_favorite: true,  position: 800},
+].map(p => ({
+	description: '',
+	hex_color: '',
+	identifier: '',
+	is_archived: false,
+	background_information: null,
+	background_blur_hash: '',
+	parent_project_id: 0,
+	owner: {id: 1, username: 'demo', name: 'Demo User'},
+	subscription: null,
+	views: [{id: p.id * 10, project_id: p.id, title: 'List', view_kind: 'list', filter: '', position: 100, bucket_configuration_mode: 'none', bucket_configuration: []}],
+	created: '2024-01-01T00:00:00Z',
+	updated: '2024-01-01T00:00:00Z',
+	...p,
+}))
+
 const MOCK_CONFIG = {
 	version: 'mock',
 	frontend_url: 'http://localhost:4173',
@@ -162,7 +189,15 @@ function mockApiPlugin(token: string): Plugin {
 					if (path === '/api/v1/info') return json(MOCK_CONFIG)
 					if (path === '/api/v1/user') return json(MOCK_USER)
 					if (path === '/api/v1/labels') return paginatedJson(MOCK_LABELS)
-					if (path === '/api/v1/projects') return paginatedJson([])
+					if (path === '/api/v1/projects') return paginatedJson(MOCK_PROJECTS)
+					const projectMatch = /^\/api\/v1\/projects\/(\d+)$/.exec(path)
+					if (projectMatch) {
+						const project = MOCK_PROJECTS.find(p => p.id === Number(projectMatch[1]))
+						return project
+							? json(project)
+							: json({message: 'project does not exist', code: 3001}, 404)
+					}
+					if (/^\/api\/v1\/projects\/\d+\/views\/\d+\/tasks$/.test(path)) return paginatedJson([])
 					if (path === '/api/v1/namespaces') return paginatedJson([])
 					if (path === '/api/v1/notifications') return paginatedJson([])
 					if (path === '/api/v1/teams') return paginatedJson(MOCK_TEAMS)
