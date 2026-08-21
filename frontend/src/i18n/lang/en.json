@@ -738,6 +738,10 @@
       "success": "The label was successfully updated."
     },
     "deleteSuccess": "The label was successfully deleted.",
+    "filter": {
+      "placeholder": "Filter labels",
+      "empty": "No labels match your filter."
+    },
     "attributes": {
       "title": "Title",
       "titlePlaceholder": "The label title goes here…",
