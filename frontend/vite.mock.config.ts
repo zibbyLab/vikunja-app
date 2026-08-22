@@ -99,7 +99,7 @@ const MOCK_CONFIG = {
 	auth: {
 		local: {enabled: true, registration_enabled: true},
 		ldap: {enabled: false},
-		open_id_connect: {enabled: false, redirect_url: '', providers: []},
+		openid_connect: {enabled: false, redirect_url: '', providers: []},
 	},
 	public_teams_enabled: false,
 	allow_icon_changes: true,
@@ -141,15 +141,15 @@ function mockApiPlugin(token: string): Plugin {
 
 		// Inject the auth token before main.ts executes so the app boots as an
 		// authenticated user without needing a real backend.
-		transformIndexHtml(html: string): string {
-			return html.replace(
-				'<script type="module" src="/src/main.ts"></script>',
-				`<script>
-  localStorage.setItem('token', '${token}');
-  localStorage.setItem('API_URL', '/api/v1');
-</script>
-<script type="module" src="/src/main.ts"></script>`,
-			)
+		transformIndexHtml: {
+			order: 'pre' as const,
+			handler() {
+				return [{
+					tag: 'script',
+					injectTo: 'head-prepend' as const,
+					children: `localStorage.setItem('token', '${token}');\nlocalStorage.setItem('API_URL', '/api/v1');`,
+				}]
+			},
 		},
 
 		configureServer(server) {
