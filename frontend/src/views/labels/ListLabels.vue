@@ -25,12 +25,24 @@
 					{{ $t('label.create.title') }}.
 				</RouterLink>
 			</p>
+			<FormField v-if="labelStore.labelsArray.length > 0">
+				<input
+					v-model="query"
+					v-cy="'labelFilterInput'"
+					class="input"
+					type="text"
+					:placeholder="$t('label.filterPlaceholder')"
+				>
+			</FormField>
 		</div>
 
 		<div class="columns">
 			<div class="labels-list column">
+				<Nothing v-if="query !== '' && filteredLabels.length === 0">
+					{{ $t('label.noFilterMatch') }}
+				</Nothing>
 				<RouterLink
-					v-for="label in labelStore.labelsArray"
+					v-for="label in filteredLabels"
 					:key="label.id"
 					:to="{name: 'home', query: {labels: label.id.toString()}}"
 					:style="getLabelStyles(label)"
@@ -127,6 +139,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import Editor from '@/components/input/AsyncEditor'
 import ColorPicker from '@/components/input/ColorPicker.vue'
 import FormField from '@/components/input/FormField.vue'
+import Nothing from '@/components/misc/Nothing.vue'
 
 import LabelModel from '@/models/label'
 import type {ILabel} from '@/modelTypes/ILabel'
@@ -143,6 +156,7 @@ const isLabelEdit = ref(false)
 const editorActive = ref(false)
 const showDeleteModal = ref(false)
 const labelToDelete = ref<ILabel | undefined>(undefined)
+const query = ref('')
 
 useTitle(() => t('label.title'))
 
@@ -153,6 +167,14 @@ const labelStore = useLabelStore()
 labelStore.loadAllLabels()
 
 const loading = computed(() => labelStore.isLoading)
+
+const filteredLabels = computed(() => {
+	const q = query.value.trim().toLowerCase()
+	if (q === '') {
+		return labelStore.labelsArray
+	}
+	return labelStore.labelsArray.filter(l => l.title.toLowerCase().includes(q))
+})
 const {getLabelStyles} = useLabelStyles()
 
 function deleteLabel(label?: ILabel) {
