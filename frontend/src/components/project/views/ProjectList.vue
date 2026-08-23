@@ -7,6 +7,22 @@
 	>
 		<template #header>
 			<div class="filter-container">
+				<div class="quick-filter-wrapper">
+					<input
+						ref="quickFilterRef"
+						v-model="query"
+						class="quick-filter input"
+						type="text"
+						:placeholder="$t('project.list.quickFilterPlaceholder')"
+						:aria-label="$t('project.list.quickFilterPlaceholder')"
+					/>
+					<button
+						v-if="query"
+						class="quick-filter-clear delete is-small"
+						:aria-label="$t('project.list.quickFilterClear')"
+						@click="query = ''"
+					/>
+				</div>
 				<SortPopup
 					v-model="sortByParam"
 				/>
@@ -38,13 +54,18 @@
 					/>
 
 					<Nothing v-if="ctaVisible && tasks.length === 0 && !loading">
-						{{ $t('project.list.empty') }}
-						<ButtonLink
-							v-if="project?.id > 0 && canWrite"
-							@click="focusNewTaskInput()"
-						>
-							{{ $t('project.list.newTaskCta') }}
-						</ButtonLink>
+						<template v-if="query">
+							{{ $t('project.list.noTasksMatchFilter') }}
+						</template>
+						<template v-else>
+							{{ $t('project.list.empty') }}
+							<ButtonLink
+								v-if="project?.id > 0 && canWrite"
+								@click="focusNewTaskInput()"
+							>
+								{{ $t('project.list.newTaskCta') }}
+							</ButtonLink>
+						</template>
 					</Nothing>
 
 					<draggable
@@ -102,6 +123,7 @@
 <script setup lang="ts">
 import {ref, computed, nextTick, onMounted, onBeforeUnmount, watch, toRef} from 'vue'
 import draggable from 'zhyswan-vuedraggable'
+import {useRouteQuery} from '@vueuse/router'
 
 import ProjectWrapper from '@/components/project/ProjectWrapper.vue'
 import ButtonLink from '@/components/misc/ButtonLink.vue'
@@ -114,7 +136,7 @@ import SortPopup from '@/components/project/partials/SortPopup.vue'
 
 import {useTaskList} from '@/composables/useTaskList'
 import {useTaskDragToProject} from '@/composables/useTaskDragToProject'
-import {shouldShowTaskInListView} from '@/composables/useTaskListFiltering'
+import {shouldShowTaskInListView, matchesQuickFilter} from '@/composables/useTaskListFiltering'
 import {PERMISSIONS as Permissions} from '@/constants/permissions'
 import {calculateItemPosition} from '@/helpers/calculateItemPosition'
 import type {ITask} from '@/modelTypes/ITask'
@@ -164,11 +186,22 @@ const taskPositionService = ref(new TaskPositionService())
 // Saved filter composable for accessing filter data
 const _savedFilter = useSavedFilter(() => isSavedFilter({id: projectId.value}) ? projectId.value : undefined).filter
 
+// Quick filter — backed by ?q= URL param so typing syncs the URL and a page
+// load with ?q=… pre-fills the box automatically.
+const quickFilterParam = useRouteQuery('q')
+const query = computed({
+	get: () => (typeof quickFilterParam.value === 'string' ? quickFilterParam.value : ''),
+	set: (val: string) => { quickFilterParam.value = val || undefined },
+})
+const quickFilterRef = ref<HTMLInputElement | null>(null)
+
 const tasks = ref<ITask[]>([])
 watch(
-	allTasks,
+	[allTasks, query],
 	() => {
-		tasks.value = ([...allTasks.value]).filter(t => shouldShowTaskInListView(t, allTasks.value))
+		tasks.value = ([...allTasks.value]).filter(t =>
+			shouldShowTaskInListView(t, allTasks.value) && matchesQuickFilter(t, query.value),
+		)
 	},
 )
 
@@ -367,6 +400,21 @@ onBeforeUnmount(() => {
 		inset-inline-end: 0;
 		max-inline-size: 300px;
 	}
+}
+
+.quick-filter-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.quick-filter {
+	padding-inline-end: 2rem;
+}
+
+.quick-filter-clear {
+	position: absolute;
+	inset-inline-end: .4rem;
 }
 
 .tasks {

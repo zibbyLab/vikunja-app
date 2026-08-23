@@ -29,3 +29,16 @@ export function shouldShowTaskInListView(
 	// Show task if parent is NOT in the current view (cross-project subtask)
 	return !hasParentInView
 }
+
+/**
+ * Returns true when the task title contains the query string (case-insensitive).
+ * Always returns true when query is empty/null so the caller can compose it
+ * cleanly with other predicates.
+ */
+export function matchesQuickFilter(
+	task: ITask,
+	query: string | null | undefined,
+): boolean {
+	if (!query) return true
+	return task.title.toLowerCase().includes(query.toLowerCase())
+}

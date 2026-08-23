@@ -476,7 +476,10 @@
       "empty": "This project is currently empty.",
       "newTaskCta": "Create a task.",
       "editTask": "Edit Task",
-      "sort": "Sort"
+      "sort": "Sort",
+      "quickFilterPlaceholder": "Filter tasks",
+      "quickFilterClear": "Clear filter",
+      "noTasksMatchFilter": "No tasks match your filter."
     },
     "gantt": {
       "title": "Gantt",

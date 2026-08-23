@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {shouldShowTaskInListView} from './useTaskListFiltering'
+import {shouldShowTaskInListView, matchesQuickFilter} from './useTaskListFiltering'
 import type {ITask} from '@/modelTypes/ITask'
 
 describe('shouldShowTaskInListView', () => {
@@ -224,5 +224,32 @@ describe('shouldShowTaskInListView', () => {
 		const allTasks = [subtask] as ITask[]
 
 		expect(shouldShowTaskInListView(subtask as ITask, allTasks)).toBe(true)
+	})
+})
+
+describe('matchesQuickFilter', () => {
+	const task = {id: 1, title: 'Invoice for October'} as ITask
+
+	it('should return true when query is empty', () => {
+		expect(matchesQuickFilter(task, '')).toBe(true)
+	})
+
+	it('should return true when query is null', () => {
+		expect(matchesQuickFilter(task, null)).toBe(true)
+	})
+
+	it('should return true when query is undefined', () => {
+		expect(matchesQuickFilter(task, undefined)).toBe(true)
+	})
+
+	it('should match a substring case-insensitively', () => {
+		expect(matchesQuickFilter(task, 'invoice')).toBe(true)
+		expect(matchesQuickFilter(task, 'INVOICE')).toBe(true)
+		expect(matchesQuickFilter(task, 'Invoice')).toBe(true)
+		expect(matchesQuickFilter(task, 'october')).toBe(true)
+	})
+
+	it('should return false when the title does not contain the query', () => {
+		expect(matchesQuickFilter(task, 'xyz')).toBe(false)
 	})
 })

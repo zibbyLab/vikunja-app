@@ -254,4 +254,93 @@ test.describe('Project View List', () => {
 		// Only one task should be visible (the searchable one)
 		await expect(page.locator('.tasks .task')).toHaveCount(1)
 	})
+
+	test('Should filter tasks with the quick filter input', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await TaskFactory.create(5, {
+			id: '{increment}',
+			title: i => i <= 3 ? 'invoice task ' + i : 'other task ' + i,
+			project_id: 1,
+		})
+
+		await page.goto('/projects/1/1')
+
+		// All 5 tasks should be visible initially
+		await expect(page.locator('.tasks .task')).toHaveCount(5, {timeout: 10000})
+
+		// Typing in the filter input narrows the list
+		const filterInput = page.locator('.quick-filter')
+		await filterInput.fill('invoice')
+
+		// URL should include ?q=invoice
+		await expect(page).toHaveURL(/q=invoice/)
+
+		// Only the 3 matching tasks should be visible
+		await expect(page.locator('.tasks .task')).toHaveCount(3)
+
+		// Clearing the input restores all tasks
+		await filterInput.fill('')
+		await expect(page.locator('.tasks .task')).toHaveCount(5)
+	})
+
+	test('Should pre-fill the quick filter from ?q= URL parameter', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await TaskFactory.create(5, {
+			id: '{increment}',
+			title: i => i <= 3 ? 'invoice task ' + i : 'other task ' + i,
+			project_id: 1,
+		})
+
+		await page.goto('/projects/1/1?q=invoice')
+
+		// Input should be pre-filled with the URL value
+		await expect(page.locator('.quick-filter')).toHaveValue('invoice')
+
+		// Only the 3 matching tasks should be rendered
+		await expect(page.locator('.tasks .task')).toHaveCount(3, {timeout: 10000})
+	})
+
+	test('Should clear the quick filter with the × button', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await TaskFactory.create(5, {
+			id: '{increment}',
+			title: i => i <= 3 ? 'invoice task ' + i : 'other task ' + i,
+			project_id: 1,
+		})
+
+		await page.goto('/projects/1/1')
+
+		const filterInput = page.locator('.quick-filter')
+		await filterInput.fill('invoice')
+		await expect(page.locator('.tasks .task')).toHaveCount(3, {timeout: 10000})
+
+		// Clear button must be visible while query is non-empty
+		const clearButton = page.locator('.quick-filter-clear')
+		await expect(clearButton).toBeVisible()
+
+		// Clicking it empties the input, restores all tasks, drops q from URL
+		await clearButton.click()
+		await expect(filterInput).toHaveValue('')
+		await expect(page).not.toHaveURL(/q=/)
+		await expect(page.locator('.tasks .task')).toHaveCount(5)
+	})
+
+	test('Should show a no-match message when the quick filter matches nothing', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await TaskFactory.create(3, {
+			id: '{increment}',
+			title: i => 'invoice task ' + i,
+			project_id: 1,
+		})
+
+		await page.goto('/projects/1/1')
+
+		await expect(page.locator('.tasks .task')).toHaveCount(3, {timeout: 10000})
+
+		await page.locator('.quick-filter').fill('xyz-no-match')
+
+		// The no-match message must appear, NOT the empty-project CTA
+		await expect(page.locator('.has-text-centered.has-text-grey.is-italic')).toContainText('No tasks match your filter.')
+		await expect(page.locator('.has-text-centered.has-text-grey.is-italic')).not.toContainText('This project is currently empty.')
+	})
 })
