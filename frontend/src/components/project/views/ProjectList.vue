@@ -7,6 +7,15 @@
 	>
 		<template #header>
 			<div class="filter-container">
+				<input
+					ref="quickFilterRef"
+					v-model="filterQuery"
+					class="input quick-filter-input"
+					type="search"
+					:aria-label="$t('project.list.quickFilterLabel')"
+					:placeholder="$t('project.list.quickFilterLabel')"
+					@keydown.escape.prevent="quickFilterRef?.blur()"
+				/>
 				<SortPopup
 					v-model="sortByParam"
 				/>
@@ -101,6 +110,7 @@
 
 <script setup lang="ts">
 import {ref, computed, nextTick, onMounted, onBeforeUnmount, watch, toRef} from 'vue'
+import {useDebounceFn} from '@vueuse/core'
 import draggable from 'zhyswan-vuedraggable'
 
 import ProjectWrapper from '@/components/project/ProjectWrapper.vue'
@@ -119,6 +129,7 @@ import {PERMISSIONS as Permissions} from '@/constants/permissions'
 import {calculateItemPosition} from '@/helpers/calculateItemPosition'
 import type {ITask} from '@/modelTypes/ITask'
 import {isSavedFilter, useSavedFilter} from '@/services/savedFilter'
+import {isFormField} from '@/helpers/shortcut'
 
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
@@ -277,6 +288,22 @@ async function saveTaskPosition(e: { originalEvent?: MouseEvent, to: HTMLElement
 	}
 }
 
+const quickFilterRef = ref<HTMLInputElement | null>(null)
+const filterQuery = ref(params.value.s)
+
+const applyFilterQuery = useDebounceFn(() => {
+	params.value.s = filterQuery.value
+}, 300)
+
+watch(filterQuery, applyFilterQuery)
+
+// Keep filterQuery in sync when params.s changes externally (e.g., restored from URL)
+watch(() => params.value.s, (val) => {
+	if (val !== filterQuery.value) {
+		filterQuery.value = val
+	}
+})
+
 const taskRefs = ref<(InstanceType<typeof SingleTaskInProject> | null)[]>([])
 const focusedIndex = ref(-1)
 
@@ -300,7 +327,13 @@ function focusTask(index: number) {
 }
 
 function handleListNavigation(e: KeyboardEvent) {
-	if (e.target instanceof HTMLElement && (e.target.closest('input, textarea, select, [contenteditable="true"]'))) {
+	if (isFormField(e.target)) {
+		return
+	}
+
+	if (e.code === 'Slash' && !e.shiftKey) {
+		e.preventDefault()
+		quickFilterRef.value?.focus()
 		return
 	}
 

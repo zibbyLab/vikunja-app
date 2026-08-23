@@ -78,6 +78,10 @@ export const KEYBOARD_SHORTCUTS: ShortcutGroup[] = [
 				title: 'keyboardShortcuts.list.open',
 				keys: ['enter'],
 			},
+			{
+				title: 'keyboardShortcuts.list.focusQuickFilter',
+				keys: ['/'],
+			},
 		],
 	},
 	{

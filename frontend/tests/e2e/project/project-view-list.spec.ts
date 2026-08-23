@@ -254,4 +254,32 @@ test.describe('Project View List', () => {
 		// Only one task should be visible (the searchable one)
 		await expect(page.locator('.tasks .task')).toHaveCount(1)
 	})
+
+	test('Should focus the quick filter input when pressing / with no form field active', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await page.goto('/projects/1/1')
+
+		// Press / with no form field focused — handler focuses the quick-filter
+		await page.keyboard.press('/')
+
+		const quickFilterInput = page.locator('input.quick-filter-input')
+		await expect(quickFilterInput).toBeFocused()
+		// e.preventDefault() must have suppressed the / character
+		await expect(quickFilterInput).toHaveValue('')
+	})
+
+	test('Should not steal focus from an active form field when pressing /', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await page.goto('/projects/1/1')
+
+		// Focus the task-add textarea (a real form field)
+		const taskInput = page.locator('.task-add textarea')
+		await taskInput.click()
+
+		// Type / — isFormField guard must leave focus and character alone
+		await page.keyboard.type('/')
+
+		await expect(taskInput).toBeFocused()
+		await expect(taskInput).toHaveValue('/')
+	})
 })

@@ -476,7 +476,8 @@
       "empty": "This project is currently empty.",
       "newTaskCta": "Create a task.",
       "editTask": "Edit Task",
-      "sort": "Sort"
+      "sort": "Sort",
+      "quickFilterLabel": "Filter tasks"
     },
     "gantt": {
       "title": "Gantt",
@@ -1333,7 +1334,8 @@
       "title": "Task List",
       "navigateDown": "Highlight next task",
       "navigateUp": "Highlight previous task",
-      "open": "Open highlighted task"
+      "open": "Open highlighted task",
+      "focusQuickFilter": "Focus quick filter"
     },
     "gantt": {
       "title": "Gantt Chart",
