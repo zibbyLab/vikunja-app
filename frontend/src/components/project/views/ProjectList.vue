@@ -7,6 +7,13 @@
 	>
 		<template #header>
 			<div class="filter-container">
+				<input
+					ref="quickFilterRef"
+					v-model="params.s"
+					type="text"
+					:placeholder="$t('project.list.quickFilterPlaceholder')"
+					class="input quick-filter-input"
+				/>
 				<SortPopup
 					v-model="sortByParam"
 				/>
@@ -120,6 +127,8 @@ import {calculateItemPosition} from '@/helpers/calculateItemPosition'
 import type {ITask} from '@/modelTypes/ITask'
 import {isSavedFilter, useSavedFilter} from '@/services/savedFilter'
 
+import {isFormField} from '@/helpers/shortcut'
+
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
 
@@ -199,6 +208,7 @@ if (typeof window !== 'undefined') {
 const dragHandle = computed(() => isTouchDevice.value ? '.handle' : undefined)
 
 const addTaskRef = ref<typeof AddTask | null>(null)
+const quickFilterRef = ref<HTMLInputElement | null>(null)
 
 function focusNewTaskInput() {
 	addTaskRef.value?.focusTaskInput()
@@ -300,7 +310,13 @@ function focusTask(index: number) {
 }
 
 function handleListNavigation(e: KeyboardEvent) {
-	if (e.target instanceof HTMLElement && (e.target.closest('input, textarea, select, [contenteditable="true"]'))) {
+	if (isFormField(e.target)) {
+		return
+	}
+
+	if (e.code === 'Slash' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+		e.preventDefault()
+		quickFilterRef.value?.focus()
 		return
 	}
 
@@ -361,6 +377,10 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	gap: .5rem;
+
+	.quick-filter-input {
+		max-inline-size: 16rem;
+	}
 
 	:deep(.popup) {
 		inset-block-start: 3rem;

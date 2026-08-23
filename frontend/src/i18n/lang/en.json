@@ -473,6 +473,7 @@
       "title": "List",
       "add": "Add",
       "addPlaceholder": "Add a task…",
+      "quickFilterPlaceholder": "Filter tasks…",
       "empty": "This project is currently empty.",
       "newTaskCta": "Create a task.",
       "editTask": "Edit Task",
@@ -1331,6 +1332,7 @@
     },
     "list": {
       "title": "Task List",
+      "focusFilter": "Focus the quick filter",
       "navigateDown": "Highlight next task",
       "navigateUp": "Highlight previous task",
       "open": "Open highlighted task"

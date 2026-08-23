@@ -67,6 +67,10 @@ export const KEYBOARD_SHORTCUTS: ShortcutGroup[] = [
 		available: (route) => route.name === 'project.view',
 		shortcuts: [
 			{
+				title: 'keyboardShortcuts.list.focusFilter',
+				keys: ['/'],
+			},
+			{
 				title: 'keyboardShortcuts.list.navigateDown',
 				keys: ['j'],
 			},
