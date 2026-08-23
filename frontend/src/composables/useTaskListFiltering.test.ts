@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {shouldShowTaskInListView} from './useTaskListFiltering'
+import {shouldShowTaskInListView, matchesQuickFilter} from './useTaskListFiltering'
 import type {ITask} from '@/modelTypes/ITask'
 
 describe('shouldShowTaskInListView', () => {
@@ -224,5 +224,42 @@ describe('shouldShowTaskInListView', () => {
 		const allTasks = [subtask] as ITask[]
 
 		expect(shouldShowTaskInListView(subtask as ITask, allTasks)).toBe(true)
+	})
+})
+
+describe('matchesQuickFilter', () => {
+	it('returns true for an empty query', () => {
+		const task = {id: 1, title: 'Pay Invoice'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, '')).toBe(true)
+	})
+
+	it('returns true for a whitespace-only query', () => {
+		const task = {id: 1, title: 'Pay Invoice'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, '   ')).toBe(true)
+	})
+
+	it('matches when title contains the query (exact case)', () => {
+		const task = {id: 1, title: 'Pay Invoice'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, 'Invoice')).toBe(true)
+	})
+
+	it('matches case-insensitively (lowercase query)', () => {
+		const task = {id: 1, title: 'Pay Invoice'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, 'invoice')).toBe(true)
+	})
+
+	it('matches case-insensitively (uppercase query)', () => {
+		const task = {id: 1, title: 'Pay Invoice'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, 'INVOICE')).toBe(true)
+	})
+
+	it('returns false when title does not contain the query', () => {
+		const task = {id: 1, title: 'Pay Invoice'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, 'receipt')).toBe(false)
+	})
+
+	it('returns false when only description contains the query but title does not', () => {
+		const task = {id: 1, title: 'Monthly report', description: 'invoice details here'} as Partial<ITask>
+		expect(matchesQuickFilter(task as ITask, 'invoice')).toBe(false)
 	})
 })
