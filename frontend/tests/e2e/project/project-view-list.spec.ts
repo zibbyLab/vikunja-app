@@ -254,4 +254,13 @@ test.describe('Project View List', () => {
 		// Only one task should be visible (the searchable one)
 		await expect(page.locator('.tasks .task')).toHaveCount(1)
 	})
+
+	test('Should show quick-filter input with keyboard hint in placeholder', async ({authenticatedPage: page}) => {
+		await createProjects(1)
+		await page.goto('/projects/1/1')
+
+		const quickFilter = page.locator('input.quick-filter-input')
+		await expect(quickFilter).toBeVisible()
+		await expect(quickFilter).toHaveAttribute('placeholder', 'Filter tasks (press /)')
+	})
 })
