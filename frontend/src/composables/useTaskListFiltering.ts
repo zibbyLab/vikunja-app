@@ -1,3 +1,5 @@
+import {computed} from 'vue'
+import {useRouteQuery} from '@vueuse/router'
 import type {ITask} from '@/modelTypes/ITask'
 
 /**
@@ -28,4 +30,21 @@ export function shouldShowTaskInListView(
 
 	// Show task if parent is NOT in the current view (cross-project subtask)
 	return !hasParentInView
+}
+
+export function matchesQuickFilter(task: ITask, query: string): boolean {
+	const q = query.trim().toLowerCase()
+	if (!q) return true
+	return task.title.toLowerCase().includes(q)
+}
+
+export function useQuickFilter() {
+	const routeQuery = useRouteQuery('q')
+
+	const query = computed({
+		get: () => routeQuery.value ?? '',
+		set: (v: string) => { routeQuery.value = v || undefined },
+	})
+
+	return {query}
 }
