@@ -7,6 +7,13 @@
 	>
 		<template #header>
 			<div class="filter-container">
+				<input
+					ref="quickFilterRef"
+					v-model="quickSearch"
+					class="input quick-filter-input"
+					type="text"
+					:placeholder="$t('project.list.quickFilterPlaceholder')"
+				/>
 				<SortPopup
 					v-model="sortByParam"
 				/>
@@ -101,6 +108,7 @@
 
 <script setup lang="ts">
 import {ref, computed, nextTick, onMounted, onBeforeUnmount, watch, toRef} from 'vue'
+import {useDebounceFn} from '@vueuse/core'
 import draggable from 'zhyswan-vuedraggable'
 
 import ProjectWrapper from '@/components/project/ProjectWrapper.vue'
@@ -204,6 +212,25 @@ function focusNewTaskInput() {
 	addTaskRef.value?.focusTaskInput()
 }
 
+// Quick-filter input: an inline search field focused by pressing /
+const quickFilterRef = ref<HTMLInputElement | null>(null)
+const quickSearch = ref(params.value.s ?? '')
+
+// Keep quickSearch in sync when params change externally (FilterPopup or URL)
+watch(() => params.value.s, (v) => {
+	const normalized = v ?? ''
+	if (quickSearch.value !== normalized) {
+		quickSearch.value = normalized
+	}
+}, {immediate: true})
+
+// Debounce writes to params so each keystroke doesn't fire a separate API call
+const applyQuickSearch = useDebounceFn((v: string) => {
+	params.value = {...params.value, s: v}
+}, 300)
+
+watch(quickSearch, applyQuickSearch)
+
 function updateTaskList(newTasks: ITask[]) {
 	if (!isPositionSorting.value) {
 		// reload tasks with current filter and sorting
@@ -304,6 +331,12 @@ function handleListNavigation(e: KeyboardEvent) {
 		return
 	}
 
+	if (e.code === 'Slash') {
+		e.preventDefault()
+		quickFilterRef.value?.focus()
+		return
+	}
+
 	if (e.code === 'KeyJ') {
 		e.preventDefault()
 		focusTask(Math.min(focusedIndex.value + 1, tasks.value.length - 1))
@@ -367,6 +400,13 @@ onBeforeUnmount(() => {
 		inset-inline-end: 0;
 		max-inline-size: 300px;
 	}
+}
+
+.quick-filter-input {
+	font-size: .875rem;
+	block-size: 2rem;
+	padding-block: 0;
+	max-inline-size: 14rem;
 }
 
 .tasks {
