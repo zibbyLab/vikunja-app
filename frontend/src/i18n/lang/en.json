@@ -660,6 +660,19 @@
       }
     }
   },
+  "savedViews": {
+    "title": "Saved Views",
+    "empty": "No saved views",
+    "loadError": "Error loading saved views",
+    "saveCurrentView": "Save current view",
+    "saveNamePlaceholder": "View name…",
+    "saveSuccess": "View saved successfully.",
+    "renameSuccess": "View renamed successfully.",
+    "deleteSuccess": "View deleted successfully.",
+    "rename": "Rename view",
+    "delete": "Delete view",
+    "apply": "Apply view"
+  },
   "sorting": {
     "manually": "Manually",
     "apply": "Apply sort",
