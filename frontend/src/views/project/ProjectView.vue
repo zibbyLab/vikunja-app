@@ -134,7 +134,7 @@ watchEffect(() => baseStore.setCurrentProjectViewId(props.viewId))
 
 <template>
 	<ProjectList
-		v-if="currentView?.viewKind === 'list'"
+		v-if="currentView?.viewKind === 'list' || (currentProject && currentProject.views?.length === 0)"
 		:project-id="projectId"
 		:is-loading-project="isLoadingProject"
 		:view-id
