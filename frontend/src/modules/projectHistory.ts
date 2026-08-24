@@ -51,3 +51,12 @@ export function removeProjectFromHistory(project: ProjectHistory) {
 	})
 	saveHistory(history)
 }
+
+export function pruneHistory(existingIds: number[]) {
+	const history = getHistory()
+	const idSet = new Set(existingIds)
+	const pruned = history.filter(entry => idSet.has(entry.id))
+	if (pruned.length < history.length) {
+		saveHistory(pruned)
+	}
+}
