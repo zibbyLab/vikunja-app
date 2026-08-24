@@ -279,6 +279,42 @@ function mockApiPlugin(token: string): Plugin {
 					return json({token: token})
 				}
 
+				// Create a new project view (save current view).
+				if (req.method === 'PUT') {
+					const createViewMatch = /^\/api\/v1\/projects\/(\d+)\/views$/.exec(path)
+					if (createViewMatch) {
+						const projectId = Number(createViewMatch[1])
+						const proj = MOCK_PROJECTS.find(p => p.id === projectId)
+						if (!proj) return json({message: 'project does not exist', code: 3001}, 404)
+						return new Promise<void>(resolve => {
+							let body = ''
+							req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+							req.on('end', () => {
+								try {
+									const payload = JSON.parse(body)
+									const maxId = proj.views.reduce((m, v) => Math.max(m, v.id), 0)
+									const maxPos = proj.views.reduce((m, v) => Math.max(m, v.position), 0)
+									const newView = {
+										id: maxId + 1,
+										project_id: projectId,
+										title: payload.title ?? 'Saved view',
+										view_kind: payload.view_kind ?? 'list',
+										filter: payload.filter ?? {filter: '', filter_include_nulls: false, sort_by: [], order_by: [], s: ''},
+										position: maxPos + 100,
+										bucket_configuration_mode: 'none',
+										bucket_configuration: [],
+									}
+									proj.views.push(newView)
+									json(newView)
+								} catch {
+									json({message: 'bad request', code: 0}, 400)
+								}
+								resolve()
+							})
+						})
+					}
+				}
+
 				// Catch-all: structured 404 so the frontend error handler gets valid JSON
 				return json({message: 'mock: not implemented', code: 0}, 404)
 			})
