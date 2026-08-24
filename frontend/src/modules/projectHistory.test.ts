@@ -1,5 +1,5 @@
 import {test, expect, vi} from 'vitest'
-import {getHistory, removeProjectFromHistory, saveProjectToHistory} from './projectHistory'
+import {getHistory, pruneHistory, removeProjectFromHistory, saveProjectToHistory} from './projectHistory'
 
 test('return an empty history when none was saved', () => {
 	vi.spyOn(localStorage, 'getItem').mockImplementation(() => null)
@@ -80,4 +80,35 @@ test('remove project from history', () => {
 
 	removeProjectFromHistory({id: 1})
 	expect(saved).toBeNull()
+})
+
+test('prune removes entries whose id is absent from existing ids', () => {
+	let saved: string | null = JSON.stringify([{id: 1}, {id: 2}, {id: 3}])
+	vi.spyOn(localStorage, 'getItem').mockImplementation(() => saved)
+	vi.spyOn(localStorage, 'setItem').mockImplementation((_key: string, projects: string) => {
+		saved = projects
+	})
+
+	pruneHistory([1, 3])
+	expect(JSON.parse(saved!)).toStrictEqual([{id: 1}, {id: 3}])
+})
+
+test('prune keeps a negative saved-filter id that is present in existing ids', () => {
+	let saved: string | null = JSON.stringify([{id: 1}, {id: 2}, {id: -5}])
+	vi.spyOn(localStorage, 'getItem').mockImplementation(() => saved)
+	vi.spyOn(localStorage, 'setItem').mockImplementation((_key: string, projects: string) => {
+		saved = projects
+	})
+
+	pruneHistory([1, -5])
+	expect(JSON.parse(saved!)).toStrictEqual([{id: 1}, {id: -5}])
+})
+
+test('prune does not write to localStorage when nothing was removed', () => {
+	let writeCount = 0
+	vi.spyOn(localStorage, 'getItem').mockImplementation(() => JSON.stringify([{id: 1}, {id: 2}]))
+	vi.spyOn(localStorage, 'setItem').mockImplementation(() => { writeCount++ })
+
+	pruneHistory([1, 2, 3])
+	expect(writeCount).toBe(0)
 })

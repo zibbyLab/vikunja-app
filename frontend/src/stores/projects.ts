@@ -7,7 +7,7 @@ import ProjectService from '@/services/project'
 import ProjectDuplicateService from '@/services/projectDuplicateService'
 import ProjectDuplicateModel from '@/models/projectDuplicateModel'
 import {setModuleLoading} from '@/stores/helper'
-import {removeProjectFromHistory} from '@/modules/projectHistory'
+import {removeProjectFromHistory, pruneHistory} from '@/modules/projectHistory'
 
 import type {IProject} from '@/modelTypes/IProject'
 
@@ -278,6 +278,7 @@ export const useProjectStore = defineStore('project', () => {
 		
 		projects.value = {}
 		setProjects(loadedProjects)
+		pruneHistory(loadedProjects.map(p => p.id))
 
 		return loadedProjects
 	}
