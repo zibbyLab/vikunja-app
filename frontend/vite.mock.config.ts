@@ -43,15 +43,6 @@ const MOCK_LABELS = [
 	{id: 7, title: 'grape',      hex_color: '7c4dff', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
 ]
 
-// Tasks seeded for project 1 / view 10 (the working "List" view)
-const MOCK_TASKS_P1 = [
-	{id: 1,  title: 'Design homepage mockup',       done: false, project_id: 1, position: 100, priority: 0, labels: [{...{id:1,title:'apple',hex_color:'ff6384',description:'',project_id:0},created_by:{id:1,username:'demo'},created:'2024-01-01T00:00:00Z',updated:'2024-01-01T00:00:00Z'}], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-1', index: 1, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-15T10:00:00Z', updated: '2024-01-15T10:00:00Z'},
-	{id: 2,  title: 'Set up CI/CD pipeline',        done: false, project_id: 1, position: 200, priority: 2, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-2', index: 2, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-16T09:00:00Z', updated: '2024-01-16T09:00:00Z'},
-	{id: 3,  title: 'Write API documentation',      done: true,  project_id: 1, position: 300, priority: 0, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 100, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-3', index: 3, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-17T11:00:00Z', updated: '2024-01-18T14:00:00Z'},
-	{id: 4,  title: 'Review accessibility audit',   done: false, project_id: 1, position: 400, priority: 1, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-4', index: 4, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-18T08:00:00Z', updated: '2024-01-18T08:00:00Z'},
-	{id: 5,  title: 'Deploy to staging environment', done: false, project_id: 1, position: 500, priority: 3, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '2026-09-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-5', index: 5, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-19T13:00:00Z', updated: '2024-01-19T13:00:00Z'},
-]
-
 // Teams with mixed case so case-insensitive search is observable
 const MOCK_TEAMS = [
 	{id: 1, name: 'Core-Platform',  description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
@@ -61,8 +52,38 @@ const MOCK_TEAMS = [
 	{id: 5, name: 'Support Core',   description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
 ]
 
+// Reusable view shape (no filter preset — plain list)
+function plainListView(id: number, projectId: number) {
+	return {
+		id,
+		project_id: projectId,
+		title: 'List',
+		view_kind: 'list',
+		filter: {filter: '', filter_include_nulls: false, sort_by: [], order_by: [], s: ''},
+		position: 100,
+		bucket_configuration_mode: 'none',
+		bucket_configuration: [],
+	}
+}
+
+// A view that carries a saved filter preset (appears in the Saved Views dropdown).
+function savedView(id: number, projectId: number, title: string, filterExpr: string, position: number) {
+	return {
+		id,
+		project_id: projectId,
+		title,
+		view_kind: 'list',
+		filter: {filter: filterExpr, filter_include_nulls: false, sort_by: [], order_by: [], s: ''},
+		position,
+		bucket_configuration_mode: 'none',
+		bucket_configuration: [],
+	}
+}
+
 // Projects in position order, with favorites deliberately interleaved so a
 // "favorites first" reordering is observable.
+// Projects 1 & 2 have saved views with filter presets so the restore feature can
+// be exercised without needing real backend data.
 const MOCK_PROJECTS = [
 	{id: 1, title: 'Website Relaunch',   is_favorite: false, position: 100},
 	{id: 2, title: 'Mobile App',         is_favorite: true,  position: 200},
@@ -82,12 +103,20 @@ const MOCK_PROJECTS = [
 	parent_project_id: 0,
 	owner: {id: 1, username: 'demo', name: 'Demo User'},
 	subscription: null,
-	views: [
-			{id: p.id * 10, project_id: p.id, title: 'List', view_kind: 'list', filter: '', position: 100, bucket_configuration_mode: 'none', bucket_configuration: []},
-			// Project 1 gets a second view whose filter references deleted label 999 —
-			// switching to it demonstrates the stale-filter error handling.
-			...(p.id === 1 ? [{id: 11, project_id: 1, title: 'By Label (stale)', view_kind: 'list', filter: 'label = 999', position: 200, bucket_configuration_mode: 'none', bucket_configuration: []}] : []),
-		],
+	// Projects 1 and 2 get extra saved-view presets so the dropdown is visible
+	// and the auto-restore can be demonstrated end-to-end.
+	views: p.id === 1
+		? [
+			plainListView(10, 1),
+			savedView(11, 1, 'High Priority', 'priority >= 3', 200),
+			savedView(12, 1, 'Overdue', 'due_date < now || due_date = now', 300),
+		]
+		: p.id === 2
+			? [
+				plainListView(20, 2),
+				savedView(21, 2, 'Active Sprint', 'done = false', 200),
+			]
+			: [plainListView(p.id * 10, p.id)],
 	created: '2024-01-01T00:00:00Z',
 	updated: '2024-01-01T00:00:00Z',
 	...p,
@@ -158,23 +187,11 @@ function mockApiPlugin(token: string): Plugin {
 		transformIndexHtml: {
 			order: 'pre' as const,
 			handler() {
-				return [
-					{
-						tag: 'script',
-						injectTo: 'head-prepend' as const,
-						children: `localStorage.setItem('token', '${token}');\nlocalStorage.setItem('API_URL', '/api/v1');`,
-					},
-					// Force system fonts so the QA browser never waits on external font
-					// fetches.  The custom woff2 filenames contain brackets (e.g.
-					// "Quicksand[wght]_….woff2") which some QA proxies fail to forward,
-					// causing screenshot tools to block waiting for fonts indefinitely.
-					{
-						tag: 'style',
-						injectTo: 'head' as const,
-						children: `/* mock-harness: system fonts to avoid proxy timeouts on bracket-named woff2 files */
-*, *::before, *::after { font-family: system-ui, -apple-system, Helvetica, Arial, sans-serif !important; }`,
-					},
-				]
+				return [{
+					tag: 'script',
+					injectTo: 'head-prepend' as const,
+					children: `localStorage.setItem('token', '${token}');\nlocalStorage.setItem('API_URL', '/api/v1');`,
+				}]
 			},
 		},
 
@@ -223,19 +240,22 @@ function mockApiPlugin(token: string): Plugin {
 							? json(project)
 							: json({message: 'project does not exist', code: 3001}, 404)
 					}
-					// View 11 ("By Label (stale)") has a filter referencing a deleted label —
-					// simulate the 400 the real API would return so edge-case handling is testable.
-					if (/^\/api\/v1\/projects\/1\/views\/11\/tasks$/.test(path)) {
-						return json({message: 'label not found', code: 8001}, 400)
-					}
-					// View 10 (project 1, "List") — return real seed tasks so there is a
-					// visible "previous state" to restore after the stale-filter error.
-					if (/^\/api\/v1\/projects\/1\/views\/10\/tasks$/.test(path)) return paginatedJson(MOCK_TASKS_P1)
 					if (/^\/api\/v1\/projects\/\d+\/views\/\d+\/tasks$/.test(path)) return paginatedJson([])
+					// Return the views embedded in the project, so view-listing calls work too.
 					const projectViewsMatch = /^\/api\/v1\/projects\/(\d+)\/views$/.exec(path)
 					if (projectViewsMatch) {
-						const project = MOCK_PROJECTS.find(p => p.id === Number(projectViewsMatch[1]))
-						return project ? paginatedJson(project.views) : json({message: 'project does not exist', code: 3001}, 404)
+						const proj = MOCK_PROJECTS.find(p => p.id === Number(projectViewsMatch[1]))
+						return proj
+							? paginatedJson(proj.views)
+							: json({message: 'project does not exist', code: 3001}, 404)
+					}
+					const projectViewMatch = /^\/api\/v1\/projects\/(\d+)\/views\/(\d+)$/.exec(path)
+					if (projectViewMatch) {
+						const proj = MOCK_PROJECTS.find(p => p.id === Number(projectViewMatch[1]))
+						const view = proj?.views.find(v => v.id === Number(projectViewMatch[2]))
+						return view
+							? json(view)
+							: json({message: 'view does not exist', code: 0}, 404)
 					}
 					if (path === '/api/v1/namespaces') return paginatedJson([])
 					if (path === '/api/v1/notifications') return paginatedJson([])
