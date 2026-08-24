@@ -7,6 +7,11 @@
 	>
 		<template #header>
 			<div class="filter-container">
+				<SavedViewsDropdown
+					v-if="!isSavedFilter(project)"
+					:project-id="projectId"
+					@apply-view="applyViewFilter"
+				/>
 				<SortPopup
 					v-model="sortByParam"
 				/>
@@ -111,8 +116,9 @@ import FilterPopup from '@/components/project/partials/FilterPopup.vue'
 import Nothing from '@/components/misc/Nothing.vue'
 import Pagination from '@/components/misc/Pagination.vue'
 import SortPopup from '@/components/project/partials/SortPopup.vue'
+import SavedViewsDropdown from '@/components/project/partials/SavedViewsDropdown.vue'
 
-import {useTaskList} from '@/composables/useTaskList'
+import {useTaskList, type SortBy} from '@/composables/useTaskList'
 import {useTaskDragToProject} from '@/composables/useTaskDragToProject'
 import {shouldShowTaskInListView} from '@/composables/useTaskListFiltering'
 import {PERMISSIONS as Permissions} from '@/constants/permissions'
@@ -202,6 +208,13 @@ const addTaskRef = ref<typeof AddTask | null>(null)
 
 function focusNewTaskInput() {
 	addTaskRef.value?.focusTaskInput()
+}
+
+function applyViewFilter(filter: string, s: string, sortBy: SortBy) {
+	params.value.filter = filter
+	params.value.s = s
+	sortByParam.value = sortBy
+	loadTasks()
 }
 
 function updateTaskList(newTasks: ITask[]) {
