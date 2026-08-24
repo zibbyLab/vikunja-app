@@ -1,6 +1,14 @@
+import {ref} from 'vue'
+
 export interface ProjectHistory {
 	id: number;
 }
+
+// Module-level reactive ref so Vue components can react to history changes
+// without polling localStorage. Every write function keeps this in sync.
+export const historyRef = ref<ProjectHistory[]>(
+	JSON.parse(localStorage.getItem('projectHistory') ?? '[]'),
+)
 
 export function getHistory(): ProjectHistory[] {
 	const savedHistory = localStorage.getItem('projectHistory')
@@ -38,6 +46,7 @@ export function saveProjectToHistory(project: ProjectHistory) {
 	if (history.length > MAX_SAVED_PROJECTS) {
 		history.pop()
 	}
+	historyRef.value = [...history]
 	saveHistory(history)
 }
 
@@ -49,5 +58,11 @@ export function removeProjectFromHistory(project: ProjectHistory) {
 			history.splice(i, 1)
 		}
 	})
+	historyRef.value = [...history]
 	saveHistory(history)
+}
+
+export function clearHistory() {
+	historyRef.value = []
+	saveHistory([])
 }

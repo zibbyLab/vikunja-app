@@ -115,6 +115,24 @@
 			</nav>
 
 			<nav
+				v-if="recentlyViewedProjects.length"
+				class="menu"
+				:aria-label="$t('navigation.recentlyViewed')"
+			>
+				<ProjectsNavigation
+					:model-value="recentlyViewedProjects"
+					:can-edit-order="false"
+					:can-collapse="false"
+				/>
+				<button
+					class="clear-history-button"
+					@click="clearHistory()"
+				>
+					{{ $t('navigation.clearRecentlyViewed') }}
+				</button>
+			</nav>
+
+			<nav
 				class="menu"
 				:aria-label="$t('project.projects')"
 			>
@@ -154,6 +172,7 @@ import {PRO_FEATURE} from '@/constants/proFeatures'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import type {IProject} from '@/modelTypes/IProject'
 import {useSidebarResize} from '@/composables/useSidebarResize'
+import {historyRef, clearHistory} from '@/modules/projectHistory'
 
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
@@ -167,6 +186,12 @@ const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
 const projects = computed(() => projectStore.notArchivedRootProjects as IProject[])
 const favoriteProjects = computed(() => projectStore.favoriteProjects as IProject[])
 const savedFilterProjects = computed(() => projectStore.savedFilterProjects as IProject[])
+
+const recentlyViewedProjects = computed(() =>
+	historyRef.value
+		.map(l => projectStore.projects[l.id])
+		.filter(Boolean) as IProject[],
+)
 </script>
 
 <style lang="scss" scoped>
@@ -255,5 +280,23 @@ const savedFilterProjects = computed(() => projectStore.savedFilterProjects as I
 
 .menu + .menu {
 	padding-block-start: math.div($navbar-padding, 2);
+}
+
+.clear-history-button {
+	display: block;
+	inline-size: 100%;
+	padding-block: .375rem;
+	padding-inline: 2rem;
+	background: transparent;
+	border: none;
+	text-align: start;
+	cursor: pointer;
+	font-size: .75rem;
+	color: var(--grey-500);
+
+	&:hover {
+		color: var(--danger);
+		background: transparent;
+	}
 }
 </style>
