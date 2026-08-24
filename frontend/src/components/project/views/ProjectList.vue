@@ -47,6 +47,17 @@
 						</ButtonLink>
 					</Nothing>
 
+					<div
+						v-if="tasks.length > 0 && (canWrite || isPseudoProject)"
+						class="list-view__select-header d-print-none"
+					>
+						<FancyCheckbox
+							:model-value="allTasksSelected"
+							:aria-label="$t('project.list.selectAll')"
+							@update:modelValue="onSelectAll"
+						/>
+					</div>
+
 					<draggable
 						v-if="tasks && tasks.length > 0"
 						v-model="tasks"
@@ -74,6 +85,7 @@
 								:ref="(el) => setTaskRef(el, index)"
 								:show-list-color="false"
 								:can-mark-as-done="canWrite || isPseudoProject"
+								:selectable="canWrite || isPseudoProject"
 								:the-task="t"
 								:all-tasks="allTasks"
 								@taskUpdated="updateTasks"
@@ -111,6 +123,7 @@ import FilterPopup from '@/components/project/partials/FilterPopup.vue'
 import Nothing from '@/components/misc/Nothing.vue'
 import Pagination from '@/components/misc/Pagination.vue'
 import SortPopup from '@/components/project/partials/SortPopup.vue'
+import FancyCheckbox from '@/components/input/FancyCheckbox.vue'
 
 import {useTaskList} from '@/composables/useTaskList'
 import {useTaskDragToProject} from '@/composables/useTaskDragToProject'
@@ -122,6 +135,7 @@ import {isSavedFilter, useSavedFilter} from '@/services/savedFilter'
 
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
+import {useTaskSelectionStore} from '@/stores/taskSelection'
 
 import type {IProject} from '@/modelTypes/IProject'
 import type {IProjectView} from '@/modelTypes/IProjectView'
@@ -176,6 +190,7 @@ const isPositionSorting = computed(() => 'position' in sortByParam.value)
 
 const baseStore = useBaseStore()
 const taskStore = useTaskStore()
+const taskSelectionStore = useTaskSelectionStore()
 const {handleTaskDropToProject} = useTaskDragToProject()
 const project = computed(() => baseStore.currentProject)
 
@@ -184,6 +199,27 @@ const canWrite = computed(() => {
 })
 
 const isPseudoProject = computed(() => (project.value && isSavedFilter(project.value)) || project.value?.id === -1)
+
+// Keep selection store in sync with the current list; navigating away clears selection.
+watch(
+	[projectId, () => props.viewId],
+	([newProjectId, newViewId]) => {
+		taskSelectionStore.setCurrentList(newProjectId, newViewId)
+	},
+	{immediate: true},
+)
+
+const allTasksSelected = computed(() =>
+	tasks.value.length > 0 && tasks.value.every(t => taskSelectionStore.isSelected(t.id)),
+)
+
+function onSelectAll(checked: boolean) {
+	if (checked) {
+		tasks.value.forEach(t => taskSelectionStore.select(t.id))
+	} else {
+		tasks.value.forEach(t => taskSelectionStore.deselect(t.id))
+	}
+}
 
 onMounted(async () => {
 	await nextTick()
@@ -385,6 +421,11 @@ onBeforeUnmount(() => {
 
 .list-view__add-task {
 	padding: 1rem 1rem 0;
+}
+
+.list-view__select-header {
+	padding: .25rem .4rem .25rem .9rem;
+	border-bottom: 1px solid var(--grey-200);
 }
 
 .link-share-view .card {

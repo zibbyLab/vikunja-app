@@ -476,7 +476,8 @@
       "empty": "This project is currently empty.",
       "newTaskCta": "Create a task.",
       "editTask": "Edit Task",
-      "sort": "Sort"
+      "sort": "Sort",
+      "selectAll": "Select all tasks"
     },
     "gantt": {
       "title": "Gantt",
@@ -1012,6 +1013,7 @@
       "closeTaskDetail": "Close task detail",
       "title": "Task detail",
       "markAsDone": "Mark '{task}' as done",
+      "select": "Select task '{task}'",
       "scrollToBottom": "Scroll to bottom",
       "organization": "Organization",
       "management": "Management",

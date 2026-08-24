@@ -12,6 +12,14 @@
 			@click="openTaskDetail"
 			@keyup.enter="openTaskDetail"
 		>
+			<FancyCheckbox
+				v-if="selectable"
+				:model-value="taskSelectionStore.isSelected(task.id)"
+				:aria-label="$t('task.detail.select', {task: task.title})"
+				@update:modelValue="taskSelectionStore.toggle(task.id)"
+				@click.stop
+			/>
+
 			<span
 				v-tooltip="!canMarkAsDone ? $t('task.readOnlyCheckbox') : ''"
 				class="is-inline-flex is-align-items-center"
@@ -225,6 +233,7 @@ import {success} from '@/message'
 import {useProjectStore} from '@/stores/projects'
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
+import {useTaskSelectionStore} from '@/stores/taskSelection'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'
 import {useIntervalFn} from '@vueuse/core'
 import {playPopSound} from '@/helpers/playPop'
@@ -239,12 +248,14 @@ const props = withDefaults(defineProps<{
 	disabled?: boolean,
 	canMarkAsDone?: boolean,
 	allTasks?: ITask[],
+	selectable?: boolean,
 }>(), {
 	isArchived: false,
 	showProject: false,
 	disabled: false,
 	canMarkAsDone: true,
 	allTasks: () => [],
+	selectable: false,
 })
 
 const emit = defineEmits<{
@@ -280,6 +291,7 @@ watch(
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
 const taskStore = useTaskStore()
+const taskSelectionStore = useTaskSelectionStore()
 
 const project = computed(() => projectStore.projects[task.value.projectId])
 const projectColor = computed(() => project.value ? project.value?.hexColor : '')
