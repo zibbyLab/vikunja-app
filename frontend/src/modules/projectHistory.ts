@@ -20,7 +20,7 @@ function saveHistory(history: ProjectHistory[]) {
 	localStorage.setItem('projectHistory', JSON.stringify(history))
 }
 
-const MAX_SAVED_PROJECTS = 6
+const MAX_SAVED_PROJECTS = 8
 
 export function saveProjectToHistory(project: ProjectHistory) {
 	const history: ProjectHistory[] = getHistory()
@@ -35,9 +35,8 @@ export function saveProjectToHistory(project: ProjectHistory) {
 	// Add the new project to the beginning of the project
 	history.unshift(project)
 
-	if (history.length > MAX_SAVED_PROJECTS) {
-		history.pop()
-	}
+	// Trim to cap, also self-heals an over-long history from an older build
+	history.splice(MAX_SAVED_PROJECTS)
 	saveHistory(history)
 }
 

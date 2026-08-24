@@ -24,7 +24,7 @@ async function visitProjectsToBuildHistory(page: Page, projects: any[]) {
 test.describe('Project History', () => {
 	test('should show a project history on the home page', async ({authenticatedPage: page}) => {
 		test.setTimeout(60000)
-		const projects = await ProjectFactory.create(7)
+		const projects = await ProjectFactory.create(9)
 		for (const p of projects) {
 			await ProjectViewFactory.create(1, {
 				id: p.id,
@@ -63,6 +63,8 @@ test.describe('Project History', () => {
 		await expect(page.locator('.project-grid')).toContainText(projects[4].title)
 		await expect(page.locator('.project-grid')).toContainText(projects[5].title)
 		await expect(page.locator('.project-grid')).toContainText(projects[6].title)
+		await expect(page.locator('.project-grid')).toContainText(projects[7].title)
+		await expect(page.locator('.project-grid')).toContainText(projects[8].title)
 	})
 
 	test('should hide the last viewed section when showLastViewed setting is disabled', async ({authenticatedPage: page, apiContext}) => {
