@@ -80,6 +80,45 @@ function savedView(id: number, projectId: number, title: string, filterExpr: str
 	}
 }
 
+// Realistic task seed data for demonstrating/testing task selection UI.
+function makeTask(id: number, projectId: number, title: string, position: number, done = false) {
+	return {
+		id,
+		title,
+		project_id: projectId,
+		done,
+		position,
+		priority: 0,
+		labels: [],
+		assignees: [],
+		due_date: '0001-01-01T00:00:00Z',
+		start_date: '0001-01-01T00:00:00Z',
+		end_date: '0001-01-01T00:00:00Z',
+		hex_color: '',
+		percent_done: 0,
+		is_favorite: false,
+		description: '',
+		attachments: [],
+		related_tasks: {},
+		repeat_after: {type: 'hours', amount: 0},
+		repeat_mode: 0,
+		reminder_dates: [],
+		comment_count: 0,
+		is_unread: false,
+		created: '2024-01-01T00:00:00Z',
+		updated: '2024-01-01T00:00:00Z',
+		created_by: {id: 1, username: 'demo', name: 'Demo User'},
+	}
+}
+
+const MOCK_TASKS: ReturnType<typeof makeTask>[] = [
+	makeTask(101, 1, 'Design new landing page hero section', 100),
+	makeTask(102, 1, 'Set up CI/CD pipeline for staging', 200),
+	makeTask(103, 1, 'Write copy for About Us page', 300),
+	makeTask(104, 1, 'Review SEO audit report', 400),
+	makeTask(105, 1, 'Migrate assets to CDN', 500, true),
+]
+
 // Projects in position order, with favorites deliberately interleaved so a
 // "favorites first" reordering is observable.
 // Projects 1 & 2 have saved views with filter presets so the restore feature can
@@ -240,7 +279,11 @@ function mockApiPlugin(token: string): Plugin {
 							? json(project)
 							: json({message: 'project does not exist', code: 3001}, 404)
 					}
-					if (/^\/api\/v1\/projects\/\d+\/views\/\d+\/tasks$/.test(path)) return paginatedJson([])
+					const tasksMatch = /^\/api\/v1\/projects\/(\d+)\/views\/\d+\/tasks$/.exec(path)
+					if (tasksMatch) {
+						const projId = Number(tasksMatch[1])
+						return paginatedJson(MOCK_TASKS.filter(t => t.project_id === projId))
+					}
 					// Return the views embedded in the project, so view-listing calls work too.
 					const projectViewsMatch = /^\/api\/v1\/projects\/(\d+)\/views$/.exec(path)
 					if (projectViewsMatch) {
