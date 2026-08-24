@@ -577,7 +577,14 @@
       "deleteText": "Are you sure you want to remove this view? It will no longer be possible to use it to view tasks in this project. This action won't delete any tasks. This cannot be undone!",
       "deleteSuccess": "The view was deleted successfully.",
       "onlyAdminsCanEdit": "Only project admins can edit views.",
-      "updateSuccess": "The view was updated successfully."
+      "updateSuccess": "The view was updated successfully.",
+      "saveView": "Save view",
+      "saveViewHeader": "Save current view",
+      "saveViewNameLabel": "View name",
+      "saveViewNamePlaceholder": "Enter a name…",
+      "saveViewSuccess": "View saved successfully.",
+      "saveViewNameEmpty": "Please provide a name.",
+      "saveViewNameExists": "A view with that name already exists."
     }
   },
   "filters": {
