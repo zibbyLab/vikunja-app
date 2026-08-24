@@ -1,5 +1,5 @@
 import {test, expect, vi} from 'vitest'
-import {getHistory, removeProjectFromHistory, saveProjectToHistory} from './projectHistory'
+import {clearHistory, getHistory, removeProjectFromHistory, saveProjectToHistory} from './projectHistory'
 
 test('return an empty history when none was saved', () => {
 	vi.spyOn(localStorage, 'getItem').mockImplementation(() => null)
@@ -80,4 +80,16 @@ test('remove project from history', () => {
 
 	removeProjectFromHistory({id: 1})
 	expect(saved).toBeNull()
+})
+
+test('clearHistory() leaves getHistory() returning [] and removes the projectHistory key', () => {
+	let saved: string | null = '[{"id": 1},{"id": 2}]'
+	vi.spyOn(localStorage, 'getItem').mockImplementation(() => saved)
+	const removeItemMock = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+		saved = null
+	})
+
+	clearHistory()
+	expect(getHistory()).toStrictEqual([])
+	expect(removeItemMock).toHaveBeenCalledWith('projectHistory')
 })
