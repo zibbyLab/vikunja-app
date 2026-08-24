@@ -43,6 +43,15 @@ const MOCK_LABELS = [
 	{id: 7, title: 'grape',      hex_color: '7c4dff', description: '', project_id: 0, created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z'},
 ]
 
+// Tasks seeded for project 1 / view 10 (the working "List" view)
+const MOCK_TASKS_P1 = [
+	{id: 1,  title: 'Design homepage mockup',       done: false, project_id: 1, position: 100, priority: 0, labels: [{...{id:1,title:'apple',hex_color:'ff6384',description:'',project_id:0},created_by:{id:1,username:'demo'},created:'2024-01-01T00:00:00Z',updated:'2024-01-01T00:00:00Z'}], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-1', index: 1, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-15T10:00:00Z', updated: '2024-01-15T10:00:00Z'},
+	{id: 2,  title: 'Set up CI/CD pipeline',        done: false, project_id: 1, position: 200, priority: 2, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-2', index: 2, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-16T09:00:00Z', updated: '2024-01-16T09:00:00Z'},
+	{id: 3,  title: 'Write API documentation',      done: true,  project_id: 1, position: 300, priority: 0, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 100, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-3', index: 3, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-17T11:00:00Z', updated: '2024-01-18T14:00:00Z'},
+	{id: 4,  title: 'Review accessibility audit',   done: false, project_id: 1, position: 400, priority: 1, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '0001-01-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-4', index: 4, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-18T08:00:00Z', updated: '2024-01-18T08:00:00Z'},
+	{id: 5,  title: 'Deploy to staging environment', done: false, project_id: 1, position: 500, priority: 3, labels: [], assignees: [], attachments: [], related_tasks: {}, reminders: [], subscription: null, created_by: {id:1,username:'demo'}, due_date: '2026-09-01T00:00:00Z', start_date: '0001-01-01T00:00:00Z', end_date: '0001-01-01T00:00:00Z', percent_done: 0, repeat_after: 0, repeat_mode: 0, description: '', hex_color: '', identifier: 'WR-5', index: 5, is_favorite: false, bucket_id: 0, cover_image_attachment_id: 0, created: '2024-01-19T13:00:00Z', updated: '2024-01-19T13:00:00Z'},
+]
+
 // Teams with mixed case so case-insensitive search is observable
 const MOCK_TEAMS = [
 	{id: 1, name: 'Core-Platform',  description: '', created_by: {id: 1, username: 'demo'}, created: '2024-01-01T00:00:00Z', updated: '2024-01-01T00:00:00Z', is_public: false, max_permission: 2},
@@ -73,7 +82,12 @@ const MOCK_PROJECTS = [
 	parent_project_id: 0,
 	owner: {id: 1, username: 'demo', name: 'Demo User'},
 	subscription: null,
-	views: [{id: p.id * 10, project_id: p.id, title: 'List', view_kind: 'list', filter: '', position: 100, bucket_configuration_mode: 'none', bucket_configuration: []}],
+	views: [
+			{id: p.id * 10, project_id: p.id, title: 'List', view_kind: 'list', filter: '', position: 100, bucket_configuration_mode: 'none', bucket_configuration: []},
+			// Project 1 gets a second view whose filter references deleted label 999 —
+			// switching to it demonstrates the stale-filter error handling.
+			...(p.id === 1 ? [{id: 11, project_id: 1, title: 'By Label (stale)', view_kind: 'list', filter: 'label = 999', position: 200, bucket_configuration_mode: 'none', bucket_configuration: []}] : []),
+		],
 	created: '2024-01-01T00:00:00Z',
 	updated: '2024-01-01T00:00:00Z',
 	...p,
@@ -197,7 +211,20 @@ function mockApiPlugin(token: string): Plugin {
 							? json(project)
 							: json({message: 'project does not exist', code: 3001}, 404)
 					}
+					// View 11 ("By Label (stale)") has a filter referencing a deleted label —
+					// simulate the 400 the real API would return so edge-case handling is testable.
+					if (/^\/api\/v1\/projects\/1\/views\/11\/tasks$/.test(path)) {
+						return json({message: 'label not found', code: 8001}, 400)
+					}
+					// View 10 (project 1, "List") — return real seed tasks so there is a
+					// visible "previous state" to restore after the stale-filter error.
+					if (/^\/api\/v1\/projects\/1\/views\/10\/tasks$/.test(path)) return paginatedJson(MOCK_TASKS_P1)
 					if (/^\/api\/v1\/projects\/\d+\/views\/\d+\/tasks$/.test(path)) return paginatedJson([])
+					const projectViewsMatch = /^\/api\/v1\/projects\/(\d+)\/views$/.exec(path)
+					if (projectViewsMatch) {
+						const project = MOCK_PROJECTS.find(p => p.id === Number(projectViewsMatch[1]))
+						return project ? paginatedJson(project.views) : json({message: 'project does not exist', code: 3001}, 404)
+					}
 					if (path === '/api/v1/namespaces') return paginatedJson([])
 					if (path === '/api/v1/notifications') return paginatedJson([])
 					if (path === '/api/v1/teams') return paginatedJson(MOCK_TEAMS)
