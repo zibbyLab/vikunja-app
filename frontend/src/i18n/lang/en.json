@@ -765,7 +765,8 @@
     "home": "Vikunja home",
     "toggleChildProjects": "Toggle sub-projects",
     "main": "Main navigation",
-    "savedFilters": "Saved filters"
+    "savedFilters": "Saved filters",
+    "recentlyViewed": "Recently viewed"
   },
   "misc": {
     "loading": "Loading…",
