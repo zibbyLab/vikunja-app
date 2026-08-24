@@ -10,6 +10,7 @@ import TaskCollectionService, {
 } from '@/services/taskCollection'
 import type {ITask} from '@/modelTypes/ITask'
 import {error} from '@/message'
+import {i18n} from '@/i18n'
 import type {IProject} from '@/modelTypes/IProject'
 import {useAuthStore} from '@/stores/auth'
 import {useViewFiltersStore} from '@/stores/viewFilters'
@@ -237,13 +238,33 @@ export function useTaskList(
 
 	const tasks = ref<ITask[]>([])
 	async function loadTasks(resetBeforeLoad: boolean = true) {
+		const previousTasks = [...tasks.value]
 		if(resetBeforeLoad) {
 			tasks.value = []
 		}
 		try {
 			tasks.value = await taskCollectionService.getAll(...getAllTasksParams.value)
 		} catch (e) {
-			error(e)
+			// Restore the previous task list so the view does not go blank on error.
+			tasks.value = previousTasks
+			if (e?.response?.status === 400) {
+				// A 400 from the tasks endpoint means the filter string references an
+				// entity (label, project…) that no longer exists.  Show a targeted
+				// message instead of the raw API error, and offer a shortcut to the
+				// view settings where the filter can be edited or the view deleted.
+				error(
+					new Error(i18n.global.t('project.views.filterNotFound')),
+					[{
+						title: i18n.global.t('project.views.edit'),
+						callback: () => router.push({
+							name: 'project.settings.views',
+							params: {projectId: projectId.value},
+						}),
+					}],
+				)
+			} else {
+				error(e)
+			}
 		}
 		return tasks.value
 	}
