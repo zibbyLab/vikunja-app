@@ -17,6 +17,14 @@
 					:project-id="projectId"
 					@update:modelValue="loadTasks()"
 				/>
+				<XButton
+					v-if="!isSavedFilter(project)"
+					variant="secondary"
+					:icon="['far', 'save']"
+					@click="saveViewModalOpen = true"
+				>
+					{{ $t('project.views.saveView') }}
+				</XButton>
 			</div>
 		</template>
 
@@ -96,25 +104,66 @@
 			</div>
 		</template>
 	</ProjectWrapper>
+
+	<Modal
+		:enabled="saveViewModalOpen"
+		@close="closeSaveViewModal"
+		@submit="submitSaveView"
+	>
+		<template #header>
+			{{ $t('project.views.saveViewHeader') }}
+		</template>
+		<template #text>
+			<div class="field">
+				<label
+					class="label"
+					:for="saveViewInputId"
+				>
+					{{ $t('project.views.saveViewNameLabel') }}
+				</label>
+				<div class="control">
+					<input
+						:id="saveViewInputId"
+						ref="saveViewInputRef"
+						v-model="saveViewName"
+						class="input"
+						type="text"
+						:placeholder="$t('project.views.saveViewNamePlaceholder')"
+						@keydown.enter.prevent="submitSaveView"
+					/>
+				</div>
+				<p
+					v-if="saveViewError"
+					class="help is-danger"
+				>
+					{{ saveViewError }}
+				</p>
+			</div>
+		</template>
+	</Modal>
 </template>
 
 
 <script setup lang="ts">
-import {ref, computed, nextTick, onMounted, onBeforeUnmount, watch, toRef} from 'vue'
+import {ref, computed, nextTick, onMounted, onBeforeUnmount, watch, toRef, useId} from 'vue'
 import draggable from 'zhyswan-vuedraggable'
+import {useI18n} from 'vue-i18n'
 
 import ProjectWrapper from '@/components/project/ProjectWrapper.vue'
 import ButtonLink from '@/components/misc/ButtonLink.vue'
 import AddTask from '@/components/tasks/AddTask.vue'
 import SingleTaskInProject from '@/components/tasks/partials/SingleTaskInProject.vue'
 import FilterPopup from '@/components/project/partials/FilterPopup.vue'
+import Modal from '@/components/misc/Modal.vue'
 import Nothing from '@/components/misc/Nothing.vue'
 import Pagination from '@/components/misc/Pagination.vue'
 import SortPopup from '@/components/project/partials/SortPopup.vue'
+import XButton from '@/components/input/Button.vue'
 
 import {useTaskList} from '@/composables/useTaskList'
 import {useTaskDragToProject} from '@/composables/useTaskDragToProject'
 import {shouldShowTaskInListView} from '@/composables/useTaskListFiltering'
+import {useSavedViews} from '@/composables/useSavedViews'
 import {PERMISSIONS as Permissions} from '@/constants/permissions'
 import {calculateItemPosition} from '@/helpers/calculateItemPosition'
 import type {ITask} from '@/modelTypes/ITask'
@@ -122,6 +171,7 @@ import {isSavedFilter, useSavedFilter} from '@/services/savedFilter'
 
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
+import {success, error as errorMessage} from '@/message'
 
 import type {IProject} from '@/modelTypes/IProject'
 import type {IProjectView} from '@/modelTypes/IProjectView'
@@ -137,6 +187,42 @@ const props = defineProps<{
 const projectId = toRef(props, 'projectId')
 
 defineOptions({name: 'List'})
+
+const {t} = useI18n()
+
+// ── Save-view modal ───────────────────────────────────────────────────────────
+const {addSavedView} = useSavedViews()
+const saveViewModalOpen = ref(false)
+const saveViewName = ref('')
+const saveViewError = ref('')
+const saveViewInputId = useId()
+const saveViewInputRef = ref<HTMLInputElement | null>(null)
+
+function closeSaveViewModal() {
+	saveViewModalOpen.value = false
+	saveViewName.value = ''
+	saveViewError.value = ''
+}
+
+async function submitSaveView() {
+	saveViewError.value = ''
+	try {
+		await addSavedView(projectId.value, saveViewName.value, params.value)
+		success({message: t('project.views.saveViewSuccess')})
+		closeSaveViewModal()
+	} catch (e) {
+		if (e instanceof Error && e.message === 'nameEmpty') {
+			saveViewError.value = t('project.views.saveViewNameEmpty')
+			return
+		}
+		if (e instanceof Error && e.message === 'nameExists') {
+			saveViewError.value = t('project.views.saveViewNameExists')
+			return
+		}
+		errorMessage(e)
+	}
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 const ctaVisible = ref(false)
 
