@@ -578,6 +578,16 @@
       "deleteSuccess": "The view was deleted successfully.",
       "onlyAdminsCanEdit": "Only project admins can edit views.",
       "updateSuccess": "The view was updated successfully."
+    },
+    "savedViews": {
+      "title": "Saved views",
+      "empty": "No saved views",
+      "loadError": "Error loading saved views",
+      "saveCurrentFilters": "Save current filters",
+      "namePlaceholder": "View name…",
+      "saveSuccess": "View saved successfully.",
+      "renameSuccess": "View renamed successfully.",
+      "deleteSuccess": "View deleted successfully."
     }
   },
   "filters": {
