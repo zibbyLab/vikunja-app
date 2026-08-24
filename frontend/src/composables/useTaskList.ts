@@ -13,6 +13,8 @@ import {error} from '@/message'
 import type {IProject} from '@/modelTypes/IProject'
 import {useAuthStore} from '@/stores/auth'
 import {useViewFiltersStore} from '@/stores/viewFilters'
+import {useProjectStore} from '@/stores/projects'
+import {useSavedViews} from '@/composables/useSavedViews'
 import type {IProjectView} from '@/modelTypes/IProjectView'
 
 export type Order = 'asc' | 'desc' | 'none'
@@ -115,6 +117,8 @@ export function useTaskList(
 
 	const router = useRouter()
 	const viewFiltersStore = useViewFiltersStore()
+	const projectStore = useProjectStore()
+	const {getLastAppliedViewId} = useSavedViews()
 
 	const params = ref<TaskFilterParams>({...getDefaultTaskFilterParams()})
 
@@ -172,6 +176,26 @@ export function useTaskList(
 							if (!isNavigationFailure(failure)) throw failure
 						})
 					return
+				}
+
+				// No in-session state — try to restore a persisted saved-view filter.
+				// If the project isn't in the store yet (e.g. fresh page load race) or
+				// the view was deleted, we skip silently so the list loads with no filter.
+				const lastViewId = getLastAppliedViewId(projectId.value)
+				if (lastViewId !== null) {
+					const views = projectStore.projects[projectId.value]?.views
+					const view = views?.find(v => v.id === lastViewId)
+					// view.filter.filter is the filter expression string (IFilters.filter).
+					// It stays unchanged by objectToCamelCase since 'filter' is already lowercase.
+					const filterStr = view?.filter?.filter
+					if (filterStr) {
+						params.value = {
+							...params.value,
+							filter: filterStr,
+							s: view.filter?.s ?? '',
+						}
+						return
+					}
 				}
 			}
 

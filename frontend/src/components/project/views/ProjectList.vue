@@ -17,6 +17,27 @@
 					:project-id="projectId"
 					@update:modelValue="loadTasks()"
 				/>
+				<Dropdown
+					v-if="savedViewsList.length > 0 && !isSavedFilter(project)"
+				>
+					<template #trigger="{ toggleOpen }">
+						<XButton
+							variant="secondary"
+							icon="bookmark"
+							@click="toggleOpen"
+						>
+							{{ $t('project.views.savedViews') }}
+						</XButton>
+					</template>
+					<DropdownItem
+						v-for="view in savedViewsList"
+						:key="view.id"
+						icon="filter"
+						@click="applySavedView(view)"
+					>
+						{{ view.title }}
+					</DropdownItem>
+				</Dropdown>
 			</div>
 		</template>
 
@@ -111,10 +132,14 @@ import FilterPopup from '@/components/project/partials/FilterPopup.vue'
 import Nothing from '@/components/misc/Nothing.vue'
 import Pagination from '@/components/misc/Pagination.vue'
 import SortPopup from '@/components/project/partials/SortPopup.vue'
+import Dropdown from '@/components/misc/Dropdown.vue'
+import DropdownItem from '@/components/misc/DropdownItem.vue'
+import XButton from '@/components/input/Button.vue'
 
 import {useTaskList} from '@/composables/useTaskList'
 import {useTaskDragToProject} from '@/composables/useTaskDragToProject'
 import {shouldShowTaskInListView} from '@/composables/useTaskListFiltering'
+import {useSavedViews} from '@/composables/useSavedViews'
 import {PERMISSIONS as Permissions} from '@/constants/permissions'
 import {calculateItemPosition} from '@/helpers/calculateItemPosition'
 import type {ITask} from '@/modelTypes/ITask'
@@ -122,6 +147,7 @@ import {isSavedFilter, useSavedFilter} from '@/services/savedFilter'
 
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
+import {useProjectStore} from '@/stores/projects'
 
 import type {IProject} from '@/modelTypes/IProject'
 import type {IProjectView} from '@/modelTypes/IProjectView'
@@ -176,8 +202,26 @@ const isPositionSorting = computed(() => 'position' in sortByParam.value)
 
 const baseStore = useBaseStore()
 const taskStore = useTaskStore()
+const projectStore = useProjectStore()
 const {handleTaskDropToProject} = useTaskDragToProject()
 const project = computed(() => baseStore.currentProject)
+
+const {setLastAppliedViewId} = useSavedViews()
+
+// Project views that carry a non-empty filter expression — shown in the saved views dropdown.
+const savedViewsList = computed<IProjectView[]>(() => {
+	return projectStore.projects[projectId.value]?.views?.filter(v => v.filter?.filter) ?? []
+})
+
+function applySavedView(view: IProjectView) {
+	params.value = {
+		...params.value,
+		filter: view.filter?.filter ?? '',
+		s: view.filter?.s ?? '',
+	}
+	loadTasks()
+	setLastAppliedViewId(projectId.value, view.id)
+}
 
 const canWrite = computed(() => {
 	return project.value?.maxPermission > Permissions.READ && project.value?.id > 0
