@@ -279,39 +279,44 @@ function mockApiPlugin(token: string): Plugin {
 					return json({token: token})
 				}
 
-				// Create a new project view (save current view).
-				if (req.method === 'PUT') {
-					const createViewMatch = /^\/api\/v1\/projects\/(\d+)\/views$/.exec(path)
-					if (createViewMatch) {
-						const projectId = Number(createViewMatch[1])
-						const proj = MOCK_PROJECTS.find(p => p.id === projectId)
+				// DELETE a project view
+				if (req.method === 'DELETE') {
+					const delViewMatch = /^\/api\/v1\/projects\/(\d+)\/views\/(\d+)$/.exec(path)
+					if (delViewMatch) {
+						const projId = Number(delViewMatch[1])
+						const viewId = Number(delViewMatch[2])
+						const proj = MOCK_PROJECTS.find(p => p.id === projId)
 						if (!proj) return json({message: 'project does not exist', code: 3001}, 404)
-						return new Promise<void>(resolve => {
-							let body = ''
-							req.on('data', (chunk: Buffer) => { body += chunk.toString() })
-							req.on('end', () => {
-								try {
-									const payload = JSON.parse(body)
-									const maxId = proj.views.reduce((m, v) => Math.max(m, v.id), 0)
-									const maxPos = proj.views.reduce((m, v) => Math.max(m, v.position), 0)
-									const newView = {
-										id: maxId + 1,
-										project_id: projectId,
-										title: payload.title ?? 'Saved view',
-										view_kind: payload.view_kind ?? 'list',
-										filter: payload.filter ?? {filter: '', filter_include_nulls: false, sort_by: [], order_by: [], s: ''},
-										position: maxPos + 100,
-										bucket_configuration_mode: 'none',
-										bucket_configuration: [],
-									}
-									proj.views.push(newView)
-									json(newView)
-								} catch {
-									json({message: 'bad request', code: 0}, 400)
-								}
-								resolve()
-							})
+						const viewIdx = proj.views.findIndex(v => v.id === viewId)
+						if (viewIdx === -1) return json({message: 'view does not exist', code: 0}, 404)
+						proj.views.splice(viewIdx, 1)
+						return json({message: 'Successfully deleted.'})
+					}
+				}
+
+				// PUT (update/rename) a project view — reads JSON body
+				if (req.method === 'POST' || req.method === 'PUT') {
+					const updViewMatch = /^\/api\/v1\/projects\/(\d+)\/views\/(\d+)$/.exec(path)
+					if (updViewMatch) {
+						const projId = Number(updViewMatch[1])
+						const viewId = Number(updViewMatch[2])
+						const proj = MOCK_PROJECTS.find(p => p.id === projId)
+						if (!proj) return json({message: 'project does not exist', code: 3001}, 404)
+						const view = proj.views.find(v => v.id === viewId)
+						if (!view) return json({message: 'view does not exist', code: 0}, 404)
+						// Read body asynchronously
+						let body = ''
+						req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+						req.on('end', () => {
+							try {
+								const updates = JSON.parse(body)
+								Object.assign(view, updates)
+							} catch {
+								// ignore malformed body
+							}
+							json(view)
 						})
+						return
 					}
 				}
 
