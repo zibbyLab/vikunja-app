@@ -271,12 +271,16 @@ function mockApiPlugin(token: string): Plugin {
 					if (path === '/api/v1/info') return json(MOCK_CONFIG)
 					if (path === '/api/v1/user') return json(MOCK_USER)
 					if (path === '/api/v1/labels') return paginatedJson(MOCK_LABELS)
-					if (path === '/api/v1/projects') return paginatedJson(MOCK_PROJECTS)
+					if (path === '/api/v1/projects') return json(MOCK_PROJECTS, 200, {
+						'x-pagination-result-count': String(MOCK_PROJECTS.length),
+						'x-pagination-total-pages': '1',
+						'x-max-permission': '2',
+					})
 					const projectMatch = /^\/api\/v1\/projects\/(\d+)$/.exec(path)
 					if (projectMatch) {
 						const project = MOCK_PROJECTS.find(p => p.id === Number(projectMatch[1]))
 						return project
-							? json(project)
+							? json(project, 200, {'x-max-permission': '2'})
 							: json({message: 'project does not exist', code: 3001}, 404)
 					}
 					const tasksMatch = /^\/api\/v1\/projects\/(\d+)\/views\/\d+\/tasks$/.exec(path)
