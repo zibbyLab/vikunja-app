@@ -190,7 +190,7 @@ function mockApiPlugin(token: string): Plugin {
 				return [{
 					tag: 'script',
 					injectTo: 'head-prepend' as const,
-					children: `localStorage.setItem('token', '${token}');\nlocalStorage.setItem('API_URL', '/api/v1');`,
+					children: `localStorage.setItem('token', '${token}');\nlocalStorage.setItem('API_URL', '/api/v1');\nif (!localStorage.getItem('projectHistory')) { localStorage.setItem('projectHistory', JSON.stringify([{id: 3}, {id: 5}, {id: 1}])); }`,
 				}]
 			},
 		},
