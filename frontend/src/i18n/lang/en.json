@@ -969,6 +969,10 @@
     "doneSuccess": "The task was successfully marked as done.",
     "undoneSuccess": "The task was successfully un-marked as done.",
     "readOnlyCheckbox": "You only have read access to this task and cannot mark it as done.",
+    "selection": {
+      "select": "Select task",
+      "selectAll": "Select all tasks"
+    },
     "movedToProject": "The task was moved to {project}.",
     "undo": "Undo",
     "checklistTotal": "{checked} of {total} tasks",
