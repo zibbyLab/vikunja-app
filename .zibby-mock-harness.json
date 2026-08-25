@@ -4,5 +4,5 @@
   "files": [
     "frontend/vite.mock.config.ts"
   ],
-  "startCommand": "nohup node_modules/.bin/vite --config vite.mock.config.ts --host --port 4173 > /tmp/devserver.log 2>&1 &"
+  "startCommand": "nohup pnpm vite --config vite.mock.config.ts --host --port 4173 > /tmp/devserver.log 2>&1 &"
 }
