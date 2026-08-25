@@ -476,7 +476,9 @@
       "empty": "This project is currently empty.",
       "newTaskCta": "Create a task.",
       "editTask": "Edit Task",
-      "sort": "Sort"
+      "sort": "Sort",
+      "selectAll": "Select all tasks",
+      "selectTask": "Select task"
     },
     "gantt": {
       "title": "Gantt",
