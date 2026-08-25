@@ -115,6 +115,18 @@
 			</nav>
 
 			<nav
+				v-if="recentlyViewedProjects.length"
+				class="menu"
+				:aria-label="$t('navigation.recentlyViewed')"
+			>
+				<ProjectsNavigation
+					:model-value="recentlyViewedProjects"
+					:can-edit-order="false"
+					:can-collapse="false"
+				/>
+			</nav>
+
+			<nav
 				class="menu"
 				:aria-label="$t('project.projects')"
 			>
@@ -154,6 +166,7 @@ import {PRO_FEATURE} from '@/constants/proFeatures'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import type {IProject} from '@/modelTypes/IProject'
 import {useSidebarResize} from '@/composables/useSidebarResize'
+import {getHistory} from '@/modules/projectHistory'
 
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
@@ -167,6 +180,11 @@ const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
 const projects = computed(() => projectStore.notArchivedRootProjects as IProject[])
 const favoriteProjects = computed(() => projectStore.favoriteProjects as IProject[])
 const savedFilterProjects = computed(() => projectStore.savedFilterProjects as IProject[])
+const recentlyViewedProjects = computed(() =>
+	getHistory()
+		.map(l => projectStore.projects[l.id])
+		.filter(Boolean) as IProject[],
+)
 </script>
 
 <style lang="scss" scoped>
