@@ -117,6 +117,14 @@ const MOCK_TASKS: ReturnType<typeof makeTask>[] = [
 	makeTask(103, 1, 'Write copy for About Us page', 300),
 	makeTask(104, 1, 'Review SEO audit report', 400),
 	makeTask(105, 1, 'Migrate assets to CDN', 500, true),
+	// Project 2 tasks — needed for the navigate-clears-selection check
+	makeTask(201, 2, 'Design new app screens', 100),
+	makeTask(202, 2, 'Implement push notifications', 200),
+	makeTask(203, 2, 'Write user onboarding flow', 300),
+	// Project 9 tasks — read-only archive project for the readonly-no-selection-ui check
+	makeTask(901, 9, 'Archive: Q1 Planning notes', 100),
+	makeTask(902, 9, 'Archive: Design review minutes', 200),
+	makeTask(903, 9, 'Archive: Stakeholder meeting 2023-12', 300),
 ]
 
 // Projects in position order, with favorites deliberately interleaved so a
@@ -132,6 +140,8 @@ const MOCK_PROJECTS = [
 	{id: 6, title: 'Infrastructure',     is_favorite: false, position: 600},
 	{id: 7, title: 'Old Roadmap 2023',   is_favorite: false, position: 700, is_archived: true},
 	{id: 8, title: 'Design System',      is_favorite: true,  position: 800},
+	// Project 9 is a read-only project (max-permission=0) used to verify the readonly-no-selection-ui check
+	{id: 9, title: 'Read-Only Archive',  is_favorite: false, position: 900},
 ].map(p => ({
 	description: '',
 	hex_color: '',
@@ -155,11 +165,20 @@ const MOCK_PROJECTS = [
 				plainListView(20, 2),
 				savedView(21, 2, 'Active Sprint', 'done = false', 200),
 			]
-			: [plainListView(p.id * 10, p.id)],
+			: p.id === 9
+				? [plainListView(90, 9)]
+				: [plainListView(p.id * 10, p.id)],
 	created: '2024-01-01T00:00:00Z',
 	updated: '2024-01-01T00:00:00Z',
 	...p,
 }))
+
+// Per-project permission overrides for the x-max-permission header.
+// Projects not listed here default to ADMIN (2). Project 9 is read-only (0)
+// so the readonly-no-selection-ui acceptance criterion can be exercised.
+const PROJECT_PERMISSIONS: Record<number, number> = {
+	9: 0,
+}
 
 const MOCK_CONFIG = {
 	version: 'mock',
@@ -279,8 +298,9 @@ function mockApiPlugin(token: string): Plugin {
 					const projectMatch = /^\/api\/v1\/projects\/(\d+)$/.exec(path)
 					if (projectMatch) {
 						const project = MOCK_PROJECTS.find(p => p.id === Number(projectMatch[1]))
+						const permLevel = project ? (PROJECT_PERMISSIONS[project.id] ?? 2) : 2
 						return project
-							? json(project, 200, {'x-max-permission': '2'})
+							? json(project, 200, {'x-max-permission': String(permLevel)})
 							: json({message: 'project does not exist', code: 3001}, 404)
 					}
 					const tasksMatch = /^\/api\/v1\/projects\/(\d+)\/views\/\d+\/tasks$/.exec(path)
