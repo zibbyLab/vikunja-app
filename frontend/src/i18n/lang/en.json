@@ -476,7 +476,9 @@
       "empty": "This project is currently empty.",
       "newTaskCta": "Create a task.",
       "editTask": "Edit Task",
-      "sort": "Sort"
+      "sort": "Sort",
+      "selectAll": "Select all tasks",
+      "selectTask": "Select task"
     },
     "gantt": {
       "title": "Gantt",
@@ -964,6 +966,11 @@
     "new": "Create a task",
     "createSuccess": "The task was successfully created.",
     "bulkCreateUnexpectedResponse": "The server returned an unexpected number of created tasks.",
+    "bulk": {
+      "selectedCount": "0 tasks selected | {count} task selected | {count} tasks selected",
+      "markDone": "Mark done",
+      "errorPartial": "Failed to mark {count} task as done | Failed to mark {count} tasks as done"
+    },
     "addReminder": "Add a reminder…",
     "removeReminder": "Remove this reminder",
     "doneSuccess": "The task was successfully marked as done.",
