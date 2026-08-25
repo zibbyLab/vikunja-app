@@ -385,6 +385,26 @@ function mockApiPlugin(token: string): Plugin {
 						})
 						return
 					}
+
+					// PUT /api/v1/tasks/:id — per-task update (used by bulk mark-done)
+					const updTaskMatch = /^\/api\/v1\/tasks\/(\d+)$/.exec(path)
+					if (updTaskMatch) {
+						const taskId = Number(updTaskMatch[1])
+						const task = MOCK_TASKS.find(t => t.id === taskId)
+						if (!task) return json({message: 'task does not exist', code: 4001}, 404)
+						let body = ''
+						req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+						req.on('end', () => {
+							try {
+								const updates = JSON.parse(body)
+								Object.assign(task, updates)
+							} catch {
+								// ignore malformed body
+							}
+							json(task)
+						})
+						return
+					}
 				}
 
 				// Catch-all: structured 404 so the frontend error handler gets valid JSON
