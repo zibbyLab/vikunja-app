@@ -115,6 +115,18 @@
 			</nav>
 
 			<nav
+				v-if="recentlyViewedProjects.length"
+				class="menu"
+				:aria-label="$t('navigation.recentlyViewed')"
+			>
+				<ProjectsNavigation
+					:model-value="recentlyViewedProjects"
+					:can-edit-order="false"
+					:can-collapse="false"
+				/>
+			</nav>
+
+			<nav
 				class="menu"
 				:aria-label="$t('project.projects')"
 			>
@@ -150,6 +162,8 @@ import Loading from '@/components/misc/Loading.vue'
 import {useBaseStore} from '@/stores/base'
 import {useProjectStore} from '@/stores/projects'
 import {useConfigStore} from '@/stores/config'
+import {useAuthStore} from '@/stores/auth'
+import {getHistory} from '@/modules/projectHistory'
 import {PRO_FEATURE} from '@/constants/proFeatures'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
 import type {IProject} from '@/modelTypes/IProject'
@@ -158,6 +172,7 @@ import {useSidebarResize} from '@/composables/useSidebarResize'
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
 const configStore = useConfigStore()
+const authStore = useAuthStore()
 
 const timeTrackingEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEATURE.TIME_TRACKING))
 
@@ -167,6 +182,14 @@ const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
 const projects = computed(() => projectStore.notArchivedRootProjects as IProject[])
 const favoriteProjects = computed(() => projectStore.favoriteProjects as IProject[])
 const savedFilterProjects = computed(() => projectStore.savedFilterProjects as IProject[])
+const recentlyViewedProjects = computed(() => {
+	if (!authStore.authenticated) {
+		return []
+	}
+	return getHistory()
+		.map(l => projectStore.projects[l.id])
+		.filter(l => Boolean(l)) as IProject[]
+})
 </script>
 
 <style lang="scss" scoped>
