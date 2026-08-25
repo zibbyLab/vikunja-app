@@ -47,6 +47,18 @@
 						</ButtonLink>
 					</Nothing>
 
+					<div
+						v-if="tasks.length > 0 && (canWrite || isPseudoProject)"
+						class="list-view__select-all d-print-none"
+					>
+						<FancyCheckbox
+							:model-value="allSelected"
+							:aria-label="$t('task.selection.selectAll')"
+							@update:modelValue="toggleSelectAll"
+							@click.stop
+						/>
+					</div>
+
 					<draggable
 						v-if="tasks && tasks.length > 0"
 						v-model="tasks"
@@ -74,6 +86,7 @@
 								:ref="(el) => setTaskRef(el, index)"
 								:show-list-color="false"
 								:can-mark-as-done="canWrite || isPseudoProject"
+								:selectable="canWrite || isPseudoProject"
 								:the-task="t"
 								:all-tasks="allTasks"
 								@taskUpdated="updateTasks"
@@ -107,6 +120,7 @@ import ProjectWrapper from '@/components/project/ProjectWrapper.vue'
 import ButtonLink from '@/components/misc/ButtonLink.vue'
 import AddTask from '@/components/tasks/AddTask.vue'
 import SingleTaskInProject from '@/components/tasks/partials/SingleTaskInProject.vue'
+import FancyCheckbox from '@/components/input/FancyCheckbox.vue'
 import FilterPopup from '@/components/project/partials/FilterPopup.vue'
 import Nothing from '@/components/misc/Nothing.vue'
 import Pagination from '@/components/misc/Pagination.vue'
@@ -122,6 +136,7 @@ import {isSavedFilter, useSavedFilter} from '@/services/savedFilter'
 
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
+import {useTaskSelectionStore} from '@/stores/taskSelection'
 
 import type {IProject} from '@/modelTypes/IProject'
 import type {IProjectView} from '@/modelTypes/IProjectView'
@@ -176,6 +191,7 @@ const isPositionSorting = computed(() => 'position' in sortByParam.value)
 
 const baseStore = useBaseStore()
 const taskStore = useTaskStore()
+const taskSelectionStore = useTaskSelectionStore()
 const {handleTaskDropToProject} = useTaskDragToProject()
 const project = computed(() => baseStore.currentProject)
 
@@ -185,10 +201,30 @@ const canWrite = computed(() => {
 
 const isPseudoProject = computed(() => (project.value && isSavedFilter(project.value)) || project.value?.id === -1)
 
+const allSelected = computed(() =>
+	tasks.value.length > 0 && tasks.value.every(t => taskSelectionStore.isSelected(t.id)),
+)
+
+function toggleSelectAll(checked: boolean) {
+	if (checked) {
+		tasks.value.forEach(t => taskSelectionStore.select(t.id))
+	} else {
+		tasks.value.forEach(t => taskSelectionStore.deselect(t.id))
+	}
+}
+
 onMounted(async () => {
 	await nextTick()
 	ctaVisible.value = true
+	taskSelectionStore.setCurrentList(props.projectId, props.viewId)
 })
+
+watch(
+	[() => props.projectId, () => props.viewId],
+	([newProjectId, newViewId]) => {
+		taskSelectionStore.setCurrentList(newProjectId, newViewId)
+	},
+)
 
 const canDragTasks = computed(() => canWrite.value || isSavedFilter(project.value))
 
@@ -385,6 +421,10 @@ onBeforeUnmount(() => {
 
 .list-view__add-task {
 	padding: 1rem 1rem 0;
+}
+
+.list-view__select-all {
+	padding: .5rem 1rem .25rem;
 }
 
 .link-share-view .card {
