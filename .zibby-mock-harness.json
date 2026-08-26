@@ -4,5 +4,5 @@
   "files": [
     "frontend/vite.mock.config.ts"
   ],
-  "startCommand": "nohup pnpm vite --config vite.mock.config.ts --host --port 4173 > /tmp/devserver.log 2>&1 &"
+  "startCommand": "nohup setsid -f bash -lc 'cd /workspace/vikunja-app/frontend && exec node node_modules/vite/bin/vite.js --config vite.mock.config.ts --host 0.0.0.0 --port 4173 > /tmp/devserver.log 2>&1 < /dev/null' >/tmp/devserver-launch.log 2>&1 &"
 }
