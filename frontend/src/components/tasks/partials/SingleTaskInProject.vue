@@ -13,6 +13,18 @@
 			@keyup.enter="openTaskDetail"
 		>
 			<span
+				v-if="selectable"
+				class="task-selection d-print-none"
+			>
+				<FancyCheckbox
+					:model-value="isSelected"
+					:aria-label="$t('task.bulk.selectTask', {task: task.title})"
+					@update:modelValue="toggleSelection"
+					@click.stop
+				/>
+			</span>
+
+			<span
 				v-tooltip="!canMarkAsDone ? $t('task.readOnlyCheckbox') : ''"
 				class="is-inline-flex is-align-items-center"
 			>
@@ -225,6 +237,7 @@ import {success} from '@/message'
 import {useProjectStore} from '@/stores/projects'
 import {useBaseStore} from '@/stores/base'
 import {useTaskStore} from '@/stores/tasks'
+import {useTaskSelectionStore} from '@/stores/taskSelection'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'
 import {useIntervalFn} from '@vueuse/core'
 import {playPopSound} from '@/helpers/playPop'
@@ -239,12 +252,14 @@ const props = withDefaults(defineProps<{
 	disabled?: boolean,
 	canMarkAsDone?: boolean,
 	allTasks?: ITask[],
+	selectable?: boolean,
 }>(), {
 	isArchived: false,
 	showProject: false,
 	disabled: false,
 	canMarkAsDone: true,
 	allTasks: () => [],
+	selectable: false,
 })
 
 const emit = defineEmits<{
@@ -280,6 +295,7 @@ watch(
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
 const taskStore = useTaskStore()
+const taskSelectionStore = useTaskSelectionStore()
 
 const project = computed(() => projectStore.projects[task.value.projectId])
 const projectColor = computed(() => project.value ? project.value?.hexColor : '')
@@ -299,6 +315,12 @@ const taskDetailRoute = computed(() => ({
 	// TODO: re-enable opening task detail in modal
 	// state: { backdropView: router.currentRoute.value.fullPath },
 }))
+
+const isSelected = computed(() => taskSelectionStore.isSelected(task.value.id))
+
+function toggleSelection(selected: boolean) {
+	taskSelectionStore.toggle(task.value, selected)
+}
 
 function updateDueDate() {
 	if (!task.value.dueDate) {
@@ -392,7 +414,7 @@ function hasTextSelected() {
 
 function openTaskDetail(event: MouseEvent | KeyboardEvent) {
 	if (event.target instanceof HTMLElement) {
-		const isInteractiveElement = event.target.closest('a, button, label, input[type="checkbox"], .favorite, [role="button"]')
+		const isInteractiveElement = event.target.closest('a, button, label, input[type="checkbox"], .favorite, .task-selection, [role="button"]')
 		if (isInteractiveElement || hasTextSelected()) {
 			return
 		}
